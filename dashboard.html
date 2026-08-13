@@ -244,6 +244,11 @@
     </div>
 
     <!-- STAT CARDS -->
+    <div class="dist-card" style="margin-bottom:24px;">
+      <div class="dist-label">Scoring Weights <span style="text-transform:none;font-weight:400;color:var(--text-muted);">— adjust to re-score every deal live</span></div>
+      <div id="weight-controls" style="display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end;"></div>
+    </div>
+
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Total Submissions</div>
@@ -253,7 +258,7 @@
       <div class="stat-card">
         <div class="stat-label">Avg. Score</div>
         <div class="stat-value" id="stat-avg">—</div>
-        <div class="stat-sub">out of 44 pts</div>
+        <div class="stat-sub">out of <span id="max-sub">64</span> pts</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Highest Score</div>
@@ -263,7 +268,7 @@
       <div class="stat-card">
         <div class="stat-label">A-Grade Deals</div>
         <div class="stat-value" id="stat-a">0</div>
-        <div class="stat-sub">score 39–44</div>
+        <div class="stat-sub" id="a-range-sub">score 57–64</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Deals This Month</div>
@@ -330,11 +335,38 @@ var CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT975eNM6DzQs2ueN
 var TEST_NAMES = [
   '', // 0 placeholder
   'Deal Risk Return','Enduringly Profitable','Adjusted TTM','Valuation Risk',
-  'Future Strategic Opps','Debt Service Coverage','Commercial Banker','Model Build',
-  'Capital Risk Report','QoE (Info)','Tax Returns (Info)',
+  'EBITDA Multiple Source','Future Strategic Opps','Debt Service Coverage','Commercial Banker',
+  'Model Build','Capital Risk Report','QoE (Info)','Tax Returns (Info)',
   'Customer/Payor Mix','Deal Structure & Seller Terms'
 ];
-var INFO_ONLY = [10, 11];
+var INFO_ONLY = [11, 12];
+var GRADE_POINTS = {A:4,B:3,C:2,D:1,F:0};
+var SCORED_TESTS = [1,2,3,4,5,6,7,8,9,10,13,14];
+var WEIGHTS = {1:2,2:2,4:2,14:2}; // priority tests x2 (default; adjustable live)
+function weightOf(n){ return WEIGHTS[n]||1; }
+function computeMax(){ var m=0; SCORED_TESTS.forEach(function(n){ m += 4*weightOf(n); }); return m; }
+function weightedTotal(tests){ var tot=0; SCORED_TESTS.forEach(function(n){ var g=((tests[n]&&tests[n].grade)||'').toUpperCase(); if(GRADE_POINTS[g]!=null) tot += GRADE_POINTS[g]*weightOf(n); }); return tot; }
+function overallGrade(total){ var p=total/computeMax(); if(p>=39/44)return 'A'; if(p>=33/44)return 'B'; if(p>=27/44)return 'C'; if(p>=23/44)return 'D'; return 'F'; }
+function buildWeightControls(){
+  var c=document.getElementById('weight-controls'); if(!c) return;
+  var html='';
+  SCORED_TESTS.forEach(function(n){
+    html += '<label style="display:flex;flex-direction:column;gap:3px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-muted);width:92px;">'
+      + '<span style="white-space:normal;line-height:1.2;height:24px;overflow:hidden;">T'+n+' '+TEST_NAMES[n]+'</span>'
+      + '<input class="wt-input" data-test="'+n+'" type="number" min="0" step="0.5" value="'+weightOf(n)+'" onchange="applyWeights()" style="width:100%;padding:5px 7px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:700;color:var(--navy);">'
+      + '</label>';
+  });
+  html += '<button onclick="resetWeights()" class="sort-btn" style="align-self:flex-end;">Reset</button>';
+  html += '<div style="align-self:flex-end;font-size:11px;color:var(--text-muted);">Max <b id="wt-max" style="color:var(--navy);">'+computeMax()+'</b> pts</div>';
+  c.innerHTML=html;
+}
+function applyWeights(){
+  var ins=document.querySelectorAll('.wt-input');
+  for(var i=0;i<ins.length;i++){ var n=parseInt(ins[i].getAttribute('data-test'),10); var val=parseFloat(ins[i].value); WEIGHTS[n]=(isNaN(val)||val<0)?1:val; }
+  allDeals.forEach(function(d){ d.score=weightedTotal(d.tests); d.grade=overallGrade(d.score); });
+  renderDashboard();
+}
+function resetWeights(){ WEIGHTS={1:2,2:2,4:2,14:2}; buildWeightControls(); applyWeights(); }
 var GRADE_ORDER = {A:5,B:4,C:3,D:2,F:1,'':0};
 var BAR_COLORS = {A:'#82C99A',B:'#76C8D4',C:'#F0C060',D:'#F0A060',F:'#F09090'};
 var GRADE_LABELS = {A:'Strong deal',B:'Good deal',C:'Borderline',D:'Significant issues',F:'Fundamental problems'};
@@ -359,8 +391,8 @@ function loadData() {
     .then(function(text) {
       if (!text || text.trim() === '') { showEmpty(); return; }
       var rows = parseCSV(text);
-      // First row is header — skip it
-      var dataRows = rows.slice(1).map(function(r) { return parseRow(r); }).filter(Boolean);
+      var H = {}; (rows[0]||[]).forEach(function(h,i){ H[(h||'').trim()] = i; });
+      var dataRows = rows.slice(1).map(function(r) { return parseRow(r, H); }).filter(Boolean);
       if (dataRows.length === 0) { showEmpty(); return; }
       allDeals = dataRows;
       lastRefresh = new Date();
@@ -403,31 +435,29 @@ function parseCSV(text) {
   return rows;
 }
 
-function parseRow(cols) {
+function parseRow(cols, H) {
   if (!cols || cols.length < 5) return null;
-  if (!cols[1] || cols[1].toLowerCase() === 'searcher name') return null; // skip header
-  function v(i) { return (cols[i] || '').trim(); }
+  function col(name){ return (H && H[name]!=null) ? H[name] : -1; }
+  function v(i){ return (i==null||i<0) ? '' : (cols[i]||'').trim(); }
+  var name = v(col('Searcher Name'));
+  if (!name || name.toLowerCase() === 'searcher name') return null;
   var tests = {};
-  var col = 9;
-  for (var t = 1; t <= 13; t++) {
-    if (t === 10 || t === 11) {
-      tests[t] = { grade: v(col), notes: v(col+1), infoOnly: true };
-      col += 2;
+  for (var t = 1; t <= 14; t++) {
+    if (t === 11 || t === 12) {
+      tests[t] = { grade: v(col('T'+t+' Answer')), notes: v(col('T'+t+' Notes')), infoOnly: true };
     } else {
-      tests[t] = { grade: v(col), points: v(col+1), notes: v(col+2) };
-      col += 3;
+      tests[t] = { grade: v(col('T'+t+' Grade')), points: v(col('T'+t+' Pts')), notes: v(col('T'+t+' Notes')) };
     }
   }
-  var deal = {
-    timestamp: v(0), name: v(1), email: v(2),
-    submitterName: v(1), searcherType: '',
-    codename: v(3) || 'Untitled', business: v(4),
-    dateCompleted: v(5), stage: v(6),
-    score: parseInt(v(7)) || 0, grade: v(8),
-    tests: tests, overall: v(col)
+  var score = weightedTotal(tests);
+  return {
+    timestamp: v(col('Timestamp')), name: name, email: v(col('Searcher Email')),
+    submitterName: name, searcherType: '',
+    codename: v(col('Deal Codename')) || 'Untitled', business: v(col('Target Business')),
+    dateCompleted: v(col('Date Completed')), stage: v(col('Deal Stage')),
+    score: score, grade: overallGrade(score),
+    tests: tests, overall: v(col('Overall Assessment'))
   };
-  if (!deal.name) return null;
-  return deal;
 }
 
 function showEmpty() {
@@ -445,6 +475,11 @@ function renderDashboard() {
   document.getElementById('dashboard').style.display = 'block';
   document.getElementById('refresh-dot').className = 'refresh-dot';
   document.getElementById('refresh-label').textContent = 'Last refreshed ' + lastRefresh.toLocaleTimeString();
+  if (document.getElementById('weight-controls') && !document.getElementById('weight-controls').children.length) buildWeightControls();
+  var _mx = computeMax();
+  var _ms = document.getElementById('max-sub'); if(_ms) _ms.textContent = _mx;
+  var _ar = document.getElementById('a-range-sub'); if(_ar) _ar.textContent = 'score ' + Math.ceil(39/44*_mx) + '–' + _mx;
+  var _wm = document.getElementById('wt-max'); if(_wm) _wm.textContent = _mx;
 
   var total = allDeals.length;
   var scores = allDeals.map(function(d) { return d.score; }).filter(function(s) { return s > 0; });
@@ -540,7 +575,7 @@ function renderTable() {
     tr.onclick = function() { openDrilldown(d); };
 
     var dots = '';
-    for (var t = 1; t <= 13; t++) {
+    for (var t = 1; t <= 14; t++) {
       var g = d.tests[t] ? d.tests[t].grade : '';
       var cls = g || 'none';
       dots += '<div class="test-dot ' + cls + '" title="T' + t + ': ' + (g||'—') + '">' + (g||'·') + '</div>';
@@ -549,14 +584,14 @@ function renderTable() {
     var ts = d.timestamp ? new Date(d.timestamp) : null;
     var dateStr = ts ? ts.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
     var bc = barCol[d.grade] || '#D8DDE8';
-    var scorePct = Math.round((d.score / 44) * 100);
+    var scorePct = Math.round((d.score / computeMax()) * 100);
 
     tr.innerHTML = '<td><div style="font-weight:700;font-size:13px;">' + d.codename + '</div>'
       + (d.business ? '<div class="td-muted">' + d.business + '</div>' : '') + '</td>'
       + '<td><div>' + d.name + '</div><div class="td-muted">' + d.email + '</div></td>'
       + '<td class="td-muted">' + dateStr + '</td>'
       + '<td class="td-muted">' + (d.stage || '—') + '</td>'
-      + '<td><div style="font-weight:700;">' + (d.score || '—') + (d.score ? '<span style="font-size:11px;font-weight:400;color:var(--text-muted);"> / 44</span>' : '') + '</div>'
+      + '<td><div style="font-weight:700;">' + (d.score || '—') + (d.score ? '<span style="font-size:11px;font-weight:400;color:var(--text-muted);"> / ' + computeMax() + '</span>' : '') + '</div>'
       + '<div class="score-bar-mini"><div class="score-bar-mini-fill" style="width:' + scorePct + '%;background:' + bc + ';"></div></div></td>'
       + '<td><span class="grade-pill ' + (d.grade || 'none') + '">' + (d.grade || '—') + '</span></td>'
       + '<td><div class="test-mini-grid">' + dots + '</div></td>';
@@ -574,7 +609,7 @@ function openDrilldown(d) {
   var tc = {A:'#155724',B:'#0C5460',C:'#856404',D:'#7D3700',F:'#721C24'};
 
   var body = '<div class="drilldown-score-row">'
-    + '<div><div class="drilldown-pts">' + (d.score || '—') + '</div><div class="drilldown-pts-label">points out of 44</div>'
+    + '<div><div class="drilldown-pts">' + (d.score || '—') + '</div><div class="drilldown-pts-label">points out of ' + computeMax() + '</div>'
     + (d.grade ? '<div style="font-size:11px;color:var(--text-muted);margin-top:3px;">' + (GRADE_LABELS[d.grade]||'') + '</div>' : '')
     + '</div>'
     + (d.grade ? '<div class="drilldown-grade-big ' + d.grade + '">' + d.grade + '</div>' : '')
@@ -585,15 +620,16 @@ function openDrilldown(d) {
     2: 'Is Adjusted EBITDA > $1.2M in each of the last 5 years?',
     3: 'Divide Adjusted TTM EBITDA by the 5-year Average Adjusted EBITDA. If fewer than 5 years of history are available, use the longest available period and note how many years you used.',
     4: 'What is the deal value multiple based on Adjusted EBITDA?',
-    5: 'Are there 3-5 specific, concrete strategies for future EBITDA growth? Note: "Sell more by selling more" is not a valid strategy.',
-    6: 'Calculate the DSCR using TTM Adjusted EBITDA against forecasted Year 1 debt service, assuming 2% revenue growth.',
-    7: 'Have you spoken to a commercial banker about this deal?',
-    8: 'Have you built a financial model that integrates all of your potential growth levers?',
-    9: 'What percentage of your cap table has expressed sincere interest in this deal, weighted by ownership percentage?',
-    10: 'Has the Quality of Earnings (QoE) process kicked off yet?',
-    11: 'Have you received at least 5 years of financials and/or tax returns from the seller?',
-    12: 'What is the total percentage of revenue from the top 3 customers or payors?',
-    13: 'What structure ensures the seller has meaningful skin in the game, aligned with long-term post-acquisition success? Note: any earn-out must be tied to future performance improvements, not historical performance.'
+    5: 'On the Valuation Risk Test above, what was the EBITDA multiple based on?',
+    6: 'Are there 3-5 specific, concrete strategies for future EBITDA growth? Note: "Sell more by selling more" is not a valid strategy.',
+    7: 'Calculate the DSCR using TTM Adjusted EBITDA against forecasted Year 1 debt service, assuming 2% revenue growth.',
+    8: 'Have you spoken to a commercial banker about this deal?',
+    9: 'Have you built a financial model that integrates all of your potential growth levers?',
+    10: 'What percentage of your cap table has expressed sincere interest in this deal, weighted by ownership percentage?',
+    11: 'Has the Quality of Earnings (QoE) process kicked off yet?',
+    12: 'Have you received at least 5 years of financials and/or tax returns from the seller?',
+    13: 'What is the total percentage of revenue from the top 3 customers or payors?',
+    14: 'What structure ensures the seller has meaningful skin in the game, aligned with long-term post-acquisition success? Note: any earn-out must be tied to future performance improvements, not historical performance.'
   };
 
   var ALL_GRADES = {
@@ -601,25 +637,26 @@ function openDrilldown(d) {
     2: [['A','Yes - every year > $1.2M'],['D',"No, but it's > $900K"],['F','Neither A nor D']],
     3: [['A','Ratio < 1.15'],['B','Ratio 1.15 - 1.20'],['D','Ratio 1.21 - 2.00'],['F','Ratio > 2.00']],
     4: [['A','< 4.5x'],['B','4.6 - 5.5x (Adj. EBITDA > $3.5M)'],['C','4.6 - 5.5x (Adj. EBITDA < $3.5M)'],['D','5.6 - 6.5x'],['F','> 6.5x']],
-    5: [['A','Yes - 3 to 5 specific strategies identified'],['F','No - fewer than 3 real strategies']],
-    6: [['A','DSCR > 1.35'],['B','DSCR 1.2 - 1.35'],['C','DSCR 1.1 - 1.2'],['D','DSCR 1.0 - 1.1'],['F','DSCR < 1.0']],
-    7: [['A','Yes - spoke to a banker'],['F','No - have not spoken to a banker']],
-    8: [['A','Yes - full model built'],['F','No - model not yet built']],
-    9: [['A','85% - 100% of cap table interested'],['B','70% - 85% interested'],['C','50% - 70% interested'],['F','< 50% interested']],
-    10: [['Yes','QoE is underway'],['No','QoE has not started yet']],
-    11: [['Yes','Yes - received 5+ years'],['No','No - not yet received']],
-    12: [['A','< 50%, with no single customer > 20%'],['B','< 50%, but at least one customer > 20%'],['C','50% - 59.99%'],['D','60% - 69.99%'],['F','> 70%']],
-    13: [['A','20-25% equity & debt combo with earn-out on top'],['B','20-25% via equity, earn-out, or seller note'],['C','15-20% via equity, earn-out, or seller note'],['D','10-15% via equity, earn-out, or seller note'],['F','Less than 10% in any form']]
+    5: [['A','Average EBITDA of the past 3+ years'],['B','EBITDA from the past single calendar year'],['C','EBITDA from the trailing twelve months (TTM)'],['F','Anything else']],
+    6: [['A','Yes - 3 to 5 specific strategies identified'],['F','No - fewer than 3 real strategies']],
+    7: [['A','DSCR > 1.35'],['B','DSCR 1.2 - 1.35'],['C','DSCR 1.1 - 1.2'],['D','DSCR 1.0 - 1.1'],['F','DSCR < 1.0']],
+    8: [['A','Yes - spoke to a banker'],['F','No - have not spoken to a banker']],
+    9: [['A','Yes - full model built'],['F','No - model not yet built']],
+    10: [['A','85% - 100% of cap table interested'],['B','70% - 85% interested'],['C','50% - 70% interested'],['F','< 50% interested']],
+    11: [['Yes','QoE is underway'],['No','QoE has not started yet']],
+    12: [['Yes','Yes - received 5+ years'],['No','No - not yet received']],
+    13: [['A','< 50%, with no single customer > 20%'],['B','< 50%, but at least one customer > 20%'],['C','50% - 59.99%'],['D','60% - 69.99%'],['F','> 70%']],
+    14: [['A','20-25% equity & debt combo with earn-out on top'],['B','20-25% via equity, earn-out, or seller note'],['C','15-20% via equity, earn-out, or seller note'],['D','10-15% via equity, earn-out, or seller note'],['F','Less than 10% in any form']]
   };
 
   var bds = {A:'#82C99A',B:'#76C8D4',C:'#F0C060',D:'#F0A060',F:'#F09090'};
 
-  for (var t = 1; t <= 13; t++) {
+  for (var t = 1; t <= 14; t++) {
     var td = d.tests[t] || {};
     var g = td.grade || '';
     var notes = td.notes || '';
     var isInfo = INFO_ONLY.indexOf(t) >= 0;
-    var pts = (!isInfo && g && {A:4,B:3,C:2,D:1,F:0}[g] !== undefined) ? {A:4,B:3,C:2,D:1,F:0}[g] : null;
+    var pts = (!isInfo && g && GRADE_POINTS[g] !== undefined) ? GRADE_POINTS[g]*weightOf(t) : null;
     var pillStyle = g && bc[g] ? 'background:' + bc[g] + ';color:' + tc[g] + ';border:1px solid ' + (bds[g]||'#D8DDE8') : 'background:#EEF0F5;color:#5A6A84;border:1px solid #D8DDE8';
 
     // Build all grade options rows
@@ -645,7 +682,7 @@ function openDrilldown(d) {
       + '<div class="drilldown-test-num">' + t + '</div>'
       + '<div class="drilldown-test-name">' + TEST_NAMES[t] + (isInfo ? ' <span style="font-size:10px;background:#EEF0F5;color:#5A6A84;padding:1px 6px;border-radius:3px;font-weight:700;text-transform:uppercase;">Info</span>' : '') + '</div>'
       + '<span style="padding:3px 10px;border-radius:99px;font-size:11px;font-weight:800;' + pillStyle + '">' + (g || '—') + '</span>'
-      + (pts !== null ? '<span style="font-size:11px;color:var(--text-muted);margin-left:6px;">' + pts + 'pt</span>' : '')
+      + (pts !== null ? '<span style="font-size:11px;color:var(--text-muted);margin-left:6px;">' + pts + 'pt' + (weightOf(t)>1?' ·×'+weightOf(t):'') + '</span>' : '')
       + '</div>'
       + '<div class="drilldown-test-body">'
       + '<div style="font-size:11px;font-style:italic;color:var(--text-muted);line-height:1.5;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">' + (TEST_QUESTIONS[t] || '') + '</div>'

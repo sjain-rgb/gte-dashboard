@@ -350,7 +350,7 @@
           <div class="score-bar-fill" id="score-bar-fill" style="width:0%;background:var(--border);"></div>
         </div>
         <div class="score-ticks">
-          <span>0</span><span>F ≤22</span><span>D 23–26</span><span>C 27–32</span><span>B 33–38</span><span>A 39–44</span><span>44</span>
+          <span>0</span><span>F ≤33</span><span>D 34–39</span><span>C 40–47</span><span>B 48–56</span><span>A 57–64</span><span>64</span>
         </div>
       </div>
       <div class="score-grade-badge grade-A" id="score-overall-badge" style="display:none;"></div>
@@ -452,39 +452,43 @@ var TESTS = [
    desc:"What is the deal value multiple based on Adjusted EBITDA?",
    note_prompt:"What is the agreed purchase price and implied multiple?",
    grades:[["A","< 4.5x"],["B","4.6 \u2013 5.5x (Adj. EBITDA > $3.5M)"],["C","4.6 \u2013 5.5x (Adj. EBITDA < $3.5M)"],["D","5.6 \u2013 6.5x"],["F","> 6.5x"]]},
-  {num:5, name:"Future Strategic Opportunities Test", info_only:false,
+  {num:5, name:"EBITDA Multiple Source Test", info_only:false,
+   desc:"On the Valuation Risk Test above, what was the EBITDA multiple based on?",
+   note_prompt:"Which EBITDA basis did you use for the valuation multiple?",
+   grades:[["A","Average EBITDA of the past 3+ years"],["B","EBITDA from the past single calendar year"],["C","EBITDA from the trailing twelve months (TTM)"],["F","Anything else"]]},
+  {num:6, name:"Future Strategic Opportunities Test", info_only:false,
    desc:"Are there 3\u20135 specific, concrete strategies for future EBITDA growth? Note: \u201cSell more by selling more\u201d is not a valid strategy.",
    note_prompt:"List your 3\u20135 strategies here.",
    grades:[["A","Yes \u2014 3 to 5 specific strategies identified"],["F","No \u2014 fewer than 3 real strategies"]]},
-  {num:6, name:"Debt Service Coverage Test", info_only:false,
+  {num:7, name:"Debt Service Coverage Test", info_only:false,
    desc:"Calculate the DSCR using TTM Adjusted EBITDA against forecasted Year 1 debt service, assuming 2% revenue growth.",
    note_prompt:"What is the calculated DSCR and projected Year 1 debt service?",
    grades:[["A","DSCR > 1.35"],["B","DSCR 1.2 \u2013 1.35"],["C","DSCR 1.1 \u2013 1.2"],["D","DSCR 1.0 \u2013 1.1"],["F","DSCR < 1.0"]]},
-  {num:7, name:"Commercial Banker Test", info_only:false,
+  {num:8, name:"Commercial Banker Test", info_only:false,
    desc:"Have you spoken to a commercial banker about this deal?",
    note_prompt:"Who did you speak with, and what was their initial reaction?",
    grades:[["A","Yes \u2014 spoke to a banker"],["F","No \u2014 have not spoken to a banker"]]},
-  {num:8, name:"Model Build Test", info_only:false,
+  {num:9, name:"Model Build Test", info_only:false,
    desc:"Have you built a financial model that integrates all of your potential growth levers?",
    note_prompt:"Describe the key assumptions and outputs from your model.",
    grades:[["A","Yes \u2014 full model built"],["F","No \u2014 model not yet built"]]},
-  {num:9, name:"Capital Risk Report Test", info_only:false,
+  {num:10, name:"Capital Risk Report Test", info_only:false,
    desc:"What percentage of your cap table has expressed sincere interest in this deal, weighted by ownership percentage? Include a note on who isn\u2019t in and why.",
    note_prompt:"Who is in? Who isn\u2019t in, and why not?",
    grades:[["A","85% \u2013 100% of cap table interested"],["B","70% \u2013 85% interested"],["C","50% \u2013 70% interested"],["F","< 50% interested"]]},
-  {num:10, name:"Quality of Earnings (QoE)", info_only:true,
+  {num:11, name:"Quality of Earnings (QoE)", info_only:true,
    desc:"Has the Quality of Earnings (QoE) process kicked off yet? (Informational only \u2014 no letter grade required.)",
    note_prompt:"If yes, who is conducting the QoE and what is the expected timeline?",
    grades:[["Yes","QoE is underway"],["No","QoE has not started yet"]]},
-  {num:11, name:"Tax Returns & 5-Year Financials Test", info_only:true,
+  {num:12, name:"Tax Returns & 5-Year Financials Test", info_only:true,
    desc:"Have you received at least 5 years of financials and/or tax returns from the seller?",
    note_prompt:"How many years have you received, and from what sources?",
    grades:[["Yes","Yes \u2014 received 5+ years"],["No","No \u2014 not yet received"]]},
-  {num:12, name:"Customer / Payor Mix Concentration Test", info_only:false,
+  {num:13, name:"Customer / Payor Mix Concentration Test", info_only:false,
    desc:"What is the total percentage of revenue from the top 3 customers or payors (e.g., insurance payors)?",
    note_prompt:"Name the top customers/payors and their individual revenue percentages.",
    grades:[["A","< 50%, with no single customer > 20%"],["B","< 50%, but at least one customer > 20%"],["C","50% \u2013 59.99%"],["D","60% \u2013 69.99%"],["F","> 70%"]]},
-  {num:13, name:"Deal Structure & Seller Terms Test", info_only:false,
+  {num:14, name:"Deal Structure & Seller Terms Test", info_only:false,
    desc:"What structure ensures the seller has meaningful skin in the game, aligned with long-term post-acquisition success? Important: any earn-out must be tied to future performance improvements \u2014 not historical performance (which is simply a delayed purchase price).",
    note_prompt:"Describe the proposed deal structure in detail.",
    grades:[["A","20\u201325% equity & debt combo with earn-out on top"],["B","20\u201325% via equity, earn-out, or seller note"],["C","15\u201320% via equity, earn-out, or seller note"],["D","10\u201315% via equity, earn-out, or seller note"],["F","Less than 10% in any form"]]}
@@ -506,7 +510,7 @@ function buildTests() {
         + '</button>';
     }).join('');
     card.innerHTML = '<div class="test-header" onclick="toggleCard(' + t.num + ')">'
-      + '<div class="test-num">' + t.num + '</div>'
+      + '<div class="test-num">' + (i + 1) + '</div>'
       + '<div class="test-header-text">'
       + '<div class="test-name">' + t.name + infoTag + '</div>'
       + '<div class="test-subtitle" id="subtitle-' + t.num + '">Not yet graded</div>'
@@ -545,9 +549,10 @@ function selectGrade(num, letter) {
   updateProgress();
   setTimeout(function() {
     card.classList.remove('open');
-    var nextNum = num + 1;
-    if (nextNum <= 13) {
-      var nextCard = document.getElementById('card-' + nextNum);
+    var idx = TESTS.findIndex(function(x){ return x.num === num; });
+    var next = TESTS[idx + 1];
+    if (next) {
+      var nextCard = document.getElementById('card-' + next.num);
       if (nextCard && !nextCard.classList.contains('open')) {
         nextCard.classList.add('open');
         nextCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -561,8 +566,11 @@ function saveNotes(num) {
 }
 
 var GRADE_POINTS = {A:4, B:3, C:2, D:1, F:0};
-var SCORED_TESTS = [1,2,3,4,5,6,7,8,9,12,13]; // excludes 10 & 11 (info only)
-var MAX_POINTS = 44;
+var SCORED_TESTS = [1,2,3,4,5,6,7,8,9,10,13,14]; // excludes 11 & 12 (info only)
+// Weighted scoring — priority tests carry more weight. Edit these to retune; total & grade bands adjust automatically.
+var WEIGHTS = {1:2, 2:2, 4:2, 14:2}; // Deal Risk Return(1), Enduringly Profitable(2), Valuation Risk(4), Deal Structure(14)
+function weightOf(n){ return WEIGHTS[n] || 1; }
+var MAX_POINTS = SCORED_TESTS.reduce(function(s,n){ return s + 4 * weightOf(n); }, 0);
 
 function calcScore() {
   var total = 0;
@@ -570,7 +578,7 @@ function calcScore() {
   SCORED_TESTS.forEach(function(n) {
     var g = state.grades[n];
     if (g !== undefined && GRADE_POINTS[g] !== undefined) {
-      total += GRADE_POINTS[g];
+      total += GRADE_POINTS[g] * weightOf(n);
       scored++;
     }
   });
@@ -578,18 +586,19 @@ function calcScore() {
 }
 
 function overallGrade(points) {
-  if (points >= 39) return 'A';
-  if (points >= 33) return 'B';
-  if (points >= 27) return 'C';
-  if (points >= 23) return 'D';
+  var p = points / MAX_POINTS;            // ratios preserved from the original /44 scale
+  if (p >= 39/44) return 'A';
+  if (p >= 33/44) return 'B';
+  if (p >= 27/44) return 'C';
+  if (p >= 23/44) return 'D';
   return 'F';
 }
 
 function updateProgress() {
   var graded = Object.keys(state.grades).length;
-  var pct = Math.round((graded / 13) * 100);
+  var pct = Math.round((graded / TESTS.length) * 100);
   document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('progress-count').textContent = graded + ' / 13';
+  document.getElementById('progress-count').textContent = graded + ' / ' + TESTS.length;
 }
 
 function switchTab(tab) {
@@ -628,7 +637,7 @@ function buildScorecard() {
   } else {
     var og = overallGrade(sc.total);
     scoreEl.textContent = sc.total;
-    subEl.textContent = sc.scored + ' of 11 graded tests scored' + (allScoredGraded ? ' — final score' : ' — score in progress');
+    subEl.textContent = sc.scored + ' of ' + SCORED_TESTS.length + ' graded tests scored' + (allScoredGraded ? ' — final score' : ' — score in progress');
     barEl.style.width = Math.round((sc.total / MAX_POINTS) * 100) + '%';
     barEl.style.background = barColors[og];
     badgeEl.className = 'score-grade-badge grade-' + og;
@@ -638,22 +647,24 @@ function buildScorecard() {
 
   var grid = document.getElementById('scorecard-grid');
   grid.innerHTML = '';
-  TESTS.forEach(function(t) {
+  TESTS.forEach(function(t, i) {
     var grade = state.grades[t.num];
     var notes = state.notes[t.num] || '';
     var gradeClass = grade ? 'grade-' + grade : 'ungraded';
     var badgeText = grade || '—';
-    var pts = (!t.info_only && grade && GRADE_POINTS[grade] !== undefined) ? GRADE_POINTS[grade] : null;
+    var w = weightOf(t.num);
+    var pts = (!t.info_only && grade && GRADE_POINTS[grade] !== undefined) ? GRADE_POINTS[grade] * w : null;
+    var wtag = (!t.info_only && w > 1) ? ' ·×' + w : '';
     var row = document.createElement('div');
     row.className = 'scorecard-row';
-    row.innerHTML = '<div class="scorecard-num">' + t.num + '</div>'
+    row.innerHTML = '<div class="scorecard-num">' + (i + 1) + '</div>'
       + '<div class="scorecard-content">'
       + '<div class="scorecard-test-name">' + t.name + '</div>'
       + '<div class="scorecard-notes">' + (notes || '<em style="color:#AABBCC">No notes provided</em>') + '</div>'
       + '</div>'
       + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">'
       + '<div class="scorecard-badge ' + gradeClass + '">' + badgeText + '</div>'
-      + (pts !== null ? '<div class="scorecard-points">' + pts + ' pt' + (pts !== 1 ? 's' : '') + '</div>' : '<div class="scorecard-points" style="color:#BBCCE0;">info</div>')
+      + (pts !== null ? '<div class="scorecard-points">' + pts + ' pt' + (pts !== 1 ? 's' : '') + wtag + '</div>' : '<div class="scorecard-points" style="color:#BBCCE0;">info</div>')
       + '</div>';
     grid.appendChild(row);
   });
@@ -662,7 +673,7 @@ function buildScorecard() {
 function openSubmitModal() {
   var warnings = [];
   var graded = Object.keys(state.grades).length;
-  if (graded < 13) warnings.push(graded + ' of 13 tests graded \u2014 consider completing all before submitting.');
+  if (graded < TESTS.length) warnings.push(graded + ' of ' + TESTS.length + ' tests graded \u2014 consider completing all before submitting.');
   if (!document.getElementById('deal-codename').value.trim()) warnings.push('No deal codename entered.');
   var wDiv = document.getElementById('modal-warnings');
   if (warnings.length) {
@@ -697,7 +708,7 @@ function buildPayload(name, replyEmail, codename, business, dateStr, stage, over
   TESTS.forEach(function(t) {
     var grade = state.grades[t.num] || '';
     var notes = state.notes[t.num] || '';
-    var pts = (!t.info_only && grade && GRADE_POINTS[grade] !== undefined) ? GRADE_POINTS[grade] : undefined;
+    var pts = (!t.info_only && grade && GRADE_POINTS[grade] !== undefined) ? GRADE_POINTS[grade] * weightOf(t.num) : undefined;
     testsData[t.num] = { grade: grade, notes: notes };
     if (pts !== undefined) testsData[t.num].points = pts;
   });
@@ -749,7 +760,7 @@ function doSubmit() {
     + 'Target Business: ' + business + '\n'
     + 'Date Completed:  ' + dateStr + '\n'
     + 'Deal Stage:      ' + stage + '\n'
-    + 'Total Score:     ' + payload.totalScore + ' / 44 pts (' + (payload.overallGrade || 'incomplete') + ')\n'
+    + 'Total Score:     ' + payload.totalScore + ' / ' + MAX_POINTS + ' pts (' + (payload.overallGrade || 'incomplete') + ')\n'
     + 'Submitted by:    ' + name + '\n'
     + 'Reply to:        ' + replyEmail + '\n\n'
     + '\u2014 ' + name;
@@ -800,7 +811,7 @@ function generateReportHTML(name, replyEmail, codename, business, dateStr, stage
   };
 
   var testsHTML = '';
-  TESTS.forEach(function(t) {
+  TESTS.forEach(function(t, i) {
     var grade = state.grades[t.num];
     var notes = state.notes[t.num] || '';
     var gradeStyle = grade && GRADE_STYLES[grade] ? GRADE_STYLES[grade] : 'background:#EEF0F5;color:#5A6A84;border:1px solid #D8DDE8';
@@ -822,14 +833,14 @@ function generateReportHTML(name, replyEmail, codename, business, dateStr, stage
 
     testsHTML += '<div style="background:#fff;border:1px solid #D8DDE8;border-left:4px solid ' + borderColor + ';border-radius:10px;margin-bottom:14px;overflow:hidden;">'
       + '<div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #EAEEF5;">'
-      + '<div style="width:28px;height:28px;background:' + (grade ? '#C8A84B' : '#1A2B4A') + ';color:' + (grade ? '#1A2B4A' : '#fff') + ';border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">' + t.num + '</div>'
+      + '<div style="width:28px;height:28px;background:' + (grade ? '#C8A84B' : '#1A2B4A') + ';color:' + (grade ? '#1A2B4A' : '#fff') + ';border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">' + (i + 1) + '</div>'
       + '<div style="flex:1;">'
       + '<div style="font-size:13px;font-weight:700;color:#1A2B4A;">' + t.name + infoTag + '</div>'
       + '</div>'
       + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
       + '<div style="padding:4px 12px;border-radius:99px;font-size:12px;font-weight:800;' + gradeStyle + '">' + gradeText + '</div>'
       + (!t.info_only && grade && GRADE_POINTS[grade] !== undefined
-          ? '<div style="font-size:11px;font-weight:700;color:#5A6A84;padding:2px 8px;background:#F4F6FA;border-radius:99px;">' + GRADE_POINTS[grade] + ' pt' + (GRADE_POINTS[grade] !== 1 ? 's' : '') + '</div>'
+          ? '<div style="font-size:11px;font-weight:700;color:#5A6A84;padding:2px 8px;background:#F4F6FA;border-radius:99px;">' + (GRADE_POINTS[grade] * weightOf(t.num)) + ' pt' + ((GRADE_POINTS[grade] * weightOf(t.num)) !== 1 ? 's' : '') + (weightOf(t.num) > 1 ? ' \u00b7\u00d7' + weightOf(t.num) : '') + '</div>'
           : '<div style="font-size:11px;color:#BBCCE0;padding:2px 8px;background:#F4F6FA;border-radius:99px;">info</div>')
       + '</div>'
       + '</div>'
@@ -913,7 +924,7 @@ function generateReportHTML(name, replyEmail, codename, business, dateStr, stage
         var bds = {A:'#82C99A',B:'#76C8D4',C:'#F0C060',D:'#F0A060',F:'#F09090'};
         var labels = {A:'Strong deal — worth serious pursuit',B:'Good deal — a few things to shore up',C:'Borderline — meaningful concerns',D:'Significant issues — proceed carefully',F:'Deal has fundamental problems'};
         var tiers = [
-          {g:'A',lo:39,hi:44},{g:'B',lo:33,hi:38},{g:'C',lo:27,hi:32},{g:'D',lo:23,hi:26},{g:'F',lo:0,hi:22}
+          {g:'A',lo:57,hi:64},{g:'B',lo:48,hi:56},{g:'C',lo:40,hi:47},{g:'D',lo:34,hi:39},{g:'F',lo:0,hi:33}
         ];
         var tiersHTML = tiers.map(function(t) {
           var active = t.g === og;
