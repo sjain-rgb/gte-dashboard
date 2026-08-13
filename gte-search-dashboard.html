@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTE Search &amp; Deal Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;450;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEF1F4;
+    --surface:#FFFFFF;
+    --surface-2:#F7F9FB;
+    --ink:#141C29;
+    --ink-soft:#5A6576;
+    --ink-faint:#8C97A6;
+    --hairline:#E1E7EC;
+    --hairline-2:#EDF1F4;
+    --brand:#0F5D4A;
+    --brand-tint:#E4F0EC;
+    --good:#1E7A57;
+    --good-tint:#E3F1EA;
+    --warn:#B47614;
+    --warn-tint:#F6ECD6;
+    --bad:#B23A26;
+    --bad-tint:#F6E1DB;
+    --track:#E6EBEF;
+    --display:"Source Serif 4",Georgia,serif;
+    --body:"Inter",sans-serif;
+    --mono:"IBM Plex Mono",monospace;
+    --r:10px;
+    --shadow:0 1px 2px rgba(20,28,41,.04),0 6px 20px rgba(20,28,41,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:linear-gradient(180deg,#F1F4F7 0%,var(--paper) 34%);
+    background-attachment:fixed;
+    color:var(--ink);
+    font-family:var(--body);
+    font-size:13px;
+    line-height:1.5;
+    letter-spacing:.002em;
+    -webkit-font-smoothing:antialiased;
+    zoom:.9;
+  }
+  .wrap{max-width:1240px;margin:0 auto;padding:0 24px 72px}
+
+  /* ---------- top bar ---------- */
+  header.top{
+    position:sticky;top:0;z-index:20;
+    background:rgba(238,241,244,.86);
+    backdrop-filter:saturate(140%) blur(8px);
+    border-bottom:1px solid var(--hairline);
+  }
+  .top-inner{max-width:1240px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .brand-mark{display:flex;align-items:center;gap:11px;margin-right:4px}
+  .glyph{width:30px;height:30px;border-radius:7px;background:var(--brand);position:relative;flex:none}
+  .glyph::before{content:"";position:absolute;inset:7px 7px auto 7px;height:3px;border-radius:2px;background:#fff;opacity:.9}
+  .glyph::after{content:"";position:absolute;left:7px;top:14px;width:9px;height:9px;border:3px solid #fff;border-radius:50%;opacity:.9}
+  .brand-name{font-family:var(--display);font-weight:600;font-size:18px;letter-spacing:.01em}
+  .brand-sub{font-size:11px;color:var(--ink-faint);letter-spacing:.02em}
+  nav.tabs{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--hairline);border-radius:999px;padding:4px}
+  .tab{
+    font-family:var(--body);font-weight:600;font-size:13px;color:var(--ink-soft);
+    border:0;background:transparent;padding:7px 16px;border-radius:999px;cursor:pointer;transition:.15s;
+  }
+  .tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+  .tab:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .spacer{flex:1}
+  .asof{font-family:var(--mono);font-size:11px;color:var(--ink-faint);white-space:nowrap}
+
+  /* ---------- demo banner ---------- */
+  .demo{
+    max-width:1240px;margin:16px auto 0;padding:9px 14px;border-radius:8px;
+    background:var(--warn-tint);border:1px solid #E7D3A6;color:#7A5410;
+    font-size:12.5px;display:flex;gap:9px;align-items:center;
+  }
+  .demo b{font-weight:600}
+
+  /* ---------- sections ---------- */
+  section{margin-top:30px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+  .sec-head h2{font-family:var(--display);font-weight:600;font-size:19px;margin:0;letter-spacing:0}
+  .sec-head .eyebrow{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)}
+  .sec-head p{margin:0;color:var(--ink-soft);font-size:12.5px}
+
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r);box-shadow:var(--shadow)}
+
+  /* ---------- runway clocks (signature) ---------- */
+  .clocks{padding:6px 4px}
+  .clock{display:grid;grid-template-columns:180px 1fr 210px;gap:18px;align-items:center;padding:15px 20px;border-top:1px solid var(--hairline-2)}
+  .clock:first-child{border-top:0}
+  .who .name{font-weight:600;font-size:14px}
+  .who .meta{font-size:11.5px;color:var(--ink-faint);font-family:var(--mono)}
+  .rway{position:relative}
+  .rway .track{height:12px;border-radius:6px;background:var(--track);overflow:hidden;position:relative}
+  .rway .fill{height:100%;border-radius:6px 0 0 6px;transition:width .8s cubic-bezier(.2,.7,.2,1)}
+  .fill.good{background:var(--good)} .fill.warn{background:var(--warn)} .fill.bad{background:var(--bad)}
+  .rway .limit{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink);opacity:.35;right:0}
+  .rway .ticks{display:flex;justify-content:space-between;margin-top:5px;font-family:var(--mono);font-size:10px;color:var(--ink-faint)}
+  .rway .marker{position:absolute;top:-5px;width:2px;height:22px;background:#fff;box-shadow:0 0 0 1px rgba(20,28,41,.25)}
+  .runway-stat{text-align:right}
+  .runway-stat .big{font-family:var(--mono);font-weight:600;font-size:22px;line-height:1}
+  .runway-stat .lbl{font-size:11px;color:var(--ink-faint);margin-top:3px}
+  .pill{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;letter-spacing:.02em}
+  .pill.good{background:var(--good-tint);color:var(--good)}
+  .pill.warn{background:var(--warn-tint);color:var(--warn)}
+  .pill.bad{background:var(--bad-tint);color:var(--bad)}
+
+  /* ---------- funnel + pace ---------- */
+  .grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:start}
+  .panel{padding:18px 20px}
+  .panel h3{font-family:var(--display);font-weight:600;font-size:15.5px;margin:0 0 3px;letter-spacing:0}
+  .panel .note{font-size:11.5px;color:var(--ink-faint);margin:0 0 16px}
+  .funnel-row{display:grid;grid-template-columns:150px 1fr 58px;gap:12px;align-items:center;margin-bottom:11px}
+  .funnel-row .flabel{font-size:12.5px;color:var(--ink-soft)}
+  .funnel-bar{height:26px;border-radius:5px;background:linear-gradient(90deg,#0F5D4A,#178066);display:flex;align-items:center;padding-left:11px;color:#fff;font-family:var(--mono);font-size:12px;font-weight:600;min-width:34px;box-shadow:inset 0 1px 0 rgba(255,255,255,.14);transition:width .8s cubic-bezier(.2,.7,.2,1)}
+  .funnel-row .fpct{font-family:var(--mono);font-size:11px;color:var(--ink-faint);text-align:right}
+  .paceband{margin-top:6px}
+  .paceband .pb-row{display:grid;grid-template-columns:130px 1fr 92px;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--hairline-2)}
+  .paceband .pb-row:first-of-type{border-top:0}
+  .pb-name{font-size:12.5px;font-weight:500}
+  .pb-track{height:10px;border-radius:5px;background:var(--track);position:relative;overflow:visible}
+  .pb-zone{position:absolute;top:0;bottom:0;background:var(--brand-tint);border-left:1px dashed #9BC4B7;border-right:1px dashed #9BC4B7}
+  .pb-fill{position:absolute;top:0;bottom:0;left:0;border-radius:5px}
+  .pb-fill.good{background:var(--good)} .pb-fill.warn{background:var(--warn)} .pb-fill.bad{background:var(--bad)}
+  .pb-val{font-family:var(--mono);font-size:12px;text-align:right}
+  .pb-val small{color:var(--ink-faint);font-size:10px}
+
+  /* ---------- filters ---------- */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .filters label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);margin-right:-4px}
+  select{
+    font-family:var(--body);font-size:13px;color:var(--ink);
+    background:var(--surface);border:1px solid var(--hairline);border-radius:7px;padding:7px 30px 7px 11px;cursor:pointer;
+    appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%235A6576' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 10px center;
+  }
+  select:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+
+  /* ---------- tables ---------- */
+  .tbl-wrap{overflow-x:auto;border-radius:var(--r)}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
+  thead th{
+    text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-faint);padding:12px 14px;border-bottom:1px solid var(--hairline);background:var(--surface-2);white-space:nowrap;
+  }
+  thead th.num,tbody td.num{text-align:right;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+  tbody td{padding:12px 14px;border-bottom:1px solid var(--hairline-2);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr.click{cursor:pointer;transition:background .12s}
+  tbody tr.click:hover{background:var(--surface-2)}
+  .tag{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:5px;letter-spacing:.01em}
+  .tag.month{background:#EAE6F4;color:#5B4B8A}
+  .tag.week{background:#E4EEF4;color:#2C6285}
+  .tag.active{background:var(--good-tint);color:var(--good)}
+  .tag.inactive{background:#ECEEF1;color:var(--ink-faint)}
+  .tag.prop{background:var(--brand-tint);color:var(--brand)}
+  .tag.broker{background:#F1ECE4;color:#8A6A38}
+  .below{color:var(--bad);font-weight:600}
+  .scorechip{display:inline-flex;align-items:center;gap:8px}
+  .scorechip .sc-num{font-family:var(--mono);font-weight:600;font-size:13px;min-width:26px}
+  .scorebar{width:60px;height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+  .scorebar i{display:block;height:100%;border-radius:3px}
+  .caret{color:var(--ink-faint);font-size:11px}
+
+  /* ---------- drilldown drawer ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(20,28,41,.34);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .drawer{
+    position:fixed;top:0;right:0;bottom:0;width:min(480px,92vw);background:var(--surface);z-index:50;
+    transform:translateX(100%);transition:transform .28s cubic-bezier(.2,.7,.2,1);
+    box-shadow:-14px 0 40px rgba(20,28,41,.16);display:flex;flex-direction:column;
+  }
+  .drawer.open{transform:none}
+  .dr-head{padding:22px 24px 18px;border-bottom:1px solid var(--hairline)}
+  .dr-head .close{position:absolute;top:18px;right:20px;border:0;background:var(--surface-2);width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:16px;color:var(--ink-soft)}
+  .dr-head .close:focus-visible{outline:2px solid var(--brand)}
+  .dr-head h3{font-family:var(--display);font-weight:600;font-size:22px;margin:0 44px 4px 0;letter-spacing:0}
+  .dr-head .sub{color:var(--ink-soft);font-size:12.5px}
+  .dr-score{display:flex;align-items:baseline;gap:8px;margin-top:14px}
+  .dr-score .n{font-family:var(--mono);font-weight:600;font-size:34px;line-height:1}
+  .dr-score .d{color:var(--ink-faint);font-size:13px}
+  .dr-body{padding:8px 24px 28px;overflow-y:auto}
+  .dr-body h4{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin:22px 0 8px}
+  .testrow{display:grid;grid-template-columns:22px 1fr auto;gap:11px;align-items:center;padding:9px 0;border-top:1px solid var(--hairline-2)}
+  .testrow:first-of-type{border-top:0}
+  .dot{width:11px;height:11px;border-radius:50%;margin:0 auto}
+  .dot.pass{background:var(--good)} .dot.partial{background:var(--warn)} .dot.fail{background:var(--bad)}
+  .testrow .tname{font-size:13px}
+  .testrow .tres{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .tres.pass{color:var(--good)} .tres.partial{color:var(--warn)} .tres.fail{color:var(--bad)}
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px;margin-top:4px}
+  .kv .k{font-size:11px;color:var(--ink-faint);padding-top:8px}
+  .kv .v{font-family:var(--mono);font-size:13px;padding-top:8px;text-align:right}
+
+  .footnote{margin-top:26px;font-size:11.5px;color:var(--ink-faint);line-height:1.6}
+  .hidden{display:none!important}
+
+  @media (max-width:820px){
+    .grid2{grid-template-columns:1fr}
+    .clock{grid-template-columns:1fr;gap:10px}
+    .runway-stat{text-align:left}
+    .who .meta{display:inline-block}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important;animation:none!important}
+  }
+
+  /* ---------- Searchers full mirror ---------- */
+  .mirror-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .btn{font-family:var(--body);font-weight:600;font-size:12.5px;color:var(--ink);background:var(--surface);border:1px solid var(--hairline);border-radius:8px;padding:7px 13px;cursor:pointer;box-shadow:var(--shadow)}
+  .btn:hover{background:var(--surface-2)}
+  .btn:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+  .mirror-status{font-size:12px;color:var(--ink-faint);max-width:640px}
+  .mirror-status.live{color:var(--good);font-weight:500}
+  .mirror-status.warn{color:var(--warn)}
+  .mirror-count{font-family:var(--mono);font-size:11px;color:var(--ink-faint);white-space:nowrap}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);margin-bottom:12px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+  .mirror-wrap{overflow:auto;max-height:72vh;border:1px solid var(--hairline);border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow)}
+  table.mirror{border-collapse:separate;border-spacing:0;font-size:12px;white-space:nowrap;min-width:100%}
+  table.mirror th,table.mirror td{padding:7px 11px;border-bottom:1px solid var(--hairline-2);border-right:1px solid var(--hairline-2);text-align:left}
+  table.mirror thead th{position:sticky;top:0;z-index:3;background:var(--ink);color:#fff;font-weight:600;font-size:11px;letter-spacing:.02em;white-space:normal;min-width:90px;max-width:220px;vertical-align:bottom}
+  table.mirror tbody td{color:var(--ink-soft);max-width:280px;overflow:hidden;text-overflow:ellipsis}
+  table.mirror tbody td:first-child,table.mirror thead th:first-child{position:sticky;left:0;z-index:2;background:var(--surface-2);font-family:var(--mono);font-size:11px;color:var(--ink);min-width:96px}
+  table.mirror thead th:first-child{z-index:5;background:var(--ink);color:#fff}
+  table.mirror tbody tr:hover td{background:var(--surface-2)}
+  table.mirror tbody tr:hover td.st-open{background:#F3E4C4}
+  td.st-open{background:var(--warn-tint)}
+  td.st-paused{background:#E7EDF6}
+  td.st-lost{background:var(--bad-tint)}
+  td.st-won{background:var(--good-tint)}
+
+  /* ---------- template / placeholder notice ---------- */
+  .tmpl-notice{display:flex;gap:13px;align-items:flex-start;padding:14px 16px;border:1px dashed #C7CFD8;border-radius:var(--r);background:repeating-linear-gradient(135deg,#F7F9FB,#F7F9FB 10px,#F2F5F8 10px,#F2F5F8 20px);color:var(--ink-soft);font-size:12.5px;line-height:1.55}
+  .tmpl-notice b{color:var(--ink);font-weight:600}
+  .tmpl-badge{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6B7787;background:#E7ECF1;border-radius:5px;padding:4px 8px;margin-top:1px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand-mark">
+      <div class="glyph" aria-hidden="true"></div>
+      <div>
+        <div class="brand-name">GTE</div>
+        <div class="brand-sub">Search &amp; Deal Dashboard</div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Dashboard views">
+      <button class="tab" id="tab-searchers" role="tab" aria-selected="true" aria-controls="view-searchers">Searchers</button>
+      <button class="tab" id="tab-search" role="tab" aria-selected="false" aria-controls="view-search">Search Progress</button>
+      <button class="tab" id="tab-deals" role="tab" aria-selected="false" aria-controls="view-deals">Deal Pipeline</button>
+    </nav>
+    <span class="spacer"></span>
+    <button class="btn" id="refresh-all" title="Re-pull the latest from your sheets">&#8635;&nbsp;Refresh</button>
+    <span class="asof" id="asof">not yet loaded</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="demo">
+    <b>Mixed data.</b>
+    <span>The <b>Searchers</b> and <b>Deal Pipeline</b> tabs read your live sheets (or a sample here in preview). <b>Search Progress</b> is an intentional template &mdash; its outreach funnel stays a placeholder until the searcher-side tracking pipeline is built.</span>
+  </div>
+
+  <!-- ============ SEARCHERS (live mirror) ============ -->
+  <div id="view-searchers" role="tabpanel" aria-labelledby="tab-searchers">
+    <section>
+      <div class="sec-head">
+        <span class="eyebrow">Roster</span>
+        <h2>Searchers</h2>
+        <p>Full mirror of the master Searchers sheet &mdash; every column, live.</p>
+      </div>
+      <div class="mirror-toolbar">
+        <button class="btn" id="mirror-reload">Reload live data</button>
+        <span class="mirror-status" id="mirror-status">Connecting to the sheet&hellip;</span>
+        <span class="spacer"></span>
+        <span class="mirror-count" id="mirror-count"></span>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--warn-tint);border:1px solid #E7D3A6"></i> Open / in-progress</span>
+        <span><i style="background:#E7EDF6;border:1px solid #C3D2E8"></i> Paused</span>
+        <span><i style="background:var(--bad-tint);border:1px solid #E7C3B8"></i> Closed w/o investment</span>
+        <span><i style="background:var(--good-tint);border:1px solid #BFE0CD"></i> Closed with investment</span>
+      </div>
+      <div class="mirror-wrap">
+        <table class="mirror" id="mirror"><thead id="mirror-head"></thead><tbody id="mirror-body"></tbody></table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ SEARCH PROGRESS ============ -->
+  <div id="view-search" role="tabpanel" aria-labelledby="tab-search" class="hidden">
+
+    <section>
+      <div class="sec-head">
+        <span class="eyebrow">Runway</span>
+        <h2>Searcher search clocks</h2>
+        <p>Months elapsed against a 24-month maximum search window.</p>
+      </div>
+      <div class="card clocks" id="clocks"></div>
+    </section>
+
+    <section>
+      <div class="tmpl-notice">
+        <span class="tmpl-badge">Template</span>
+        <div><b>The outreach funnel, pace band, and KPI log below are placeholder examples — not connected to live data.</b> Wiring them up first requires building the searcher-side outreach-tracking pipeline (how each searcher captures and reports weekly funnel activity), which is deferred for now. The layout shows how it will look once that data exists. The runway clocks above are live from the roster.</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="grid2">
+        <div class="card panel">
+          <h3>Outreach funnel &mdash; latest reported period, combined</h3>
+          <p class="note">Sum of each searcher's most recent reported week or month. Proprietary sourcing only.</p>
+          <div id="funnel"></div>
+        </div>
+        <div class="card panel">
+          <h3>Contacted vs. pace band</h3>
+          <p class="note">Target 300&ndash;500 new unique businesses / week (shaded). Monthly reporters shown as weekly&#8209;equivalent (&divide;4.345).</p>
+          <div class="paceband" id="paceband"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <span class="eyebrow">Detail</span>
+        <h2>Weekly &amp; monthly KPI log</h2>
+      </div>
+      <div class="filters">
+        <label for="f-searcher">Searcher</label>
+        <select id="f-searcher"></select>
+        <label for="f-period">Period</label>
+        <select id="f-period">
+          <option value="all">All</option>
+          <option value="Week">Weekly</option>
+          <option value="Month">Monthly</option>
+        </select>
+      </div>
+      <div class="card tbl-wrap">
+        <table id="kpi-table">
+          <thead>
+            <tr>
+              <th>Searcher</th>
+              <th>Period</th>
+              <th>Type</th>
+              <th class="num">Contacted</th>
+              <th class="num">Wk&#8209;equiv</th>
+              <th class="num">Owner convos</th>
+              <th class="num">Financials</th>
+              <th class="num">IOIs</th>
+              <th class="num">LOIs</th>
+              <th class="num">Accepted</th>
+            </tr>
+          </thead>
+          <tbody id="kpi-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ DEAL PIPELINE ============ -->
+  <div id="view-deals" role="tabpanel" aria-labelledby="tab-deals" class="hidden">
+
+    <section>
+      <div class="sec-head">
+        <span class="eyebrow">Overview</span>
+        <h2>Deal pipeline</h2>
+        <p>Live from the Deal Tests results. Click a deal for its full 14-test breakdown. Deal characteristics (industry, HQ, source, financials) come from the CIM extract, merged by codename.</p>
+      </div>
+      <div class="card panel" style="margin-bottom:18px">
+        <h3>Scoring weights <span style="font-family:var(--body);font-weight:400;font-size:11.5px;color:var(--ink-faint)">— adjust to re-score every deal live (default from weights.json)</span></h3>
+        <div id="weight-controls" style="display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end;margin-top:12px"></div>
+      </div>
+      <div class="filters">
+        <label for="f-dsearcher">Searcher</label>
+        <select id="f-dsearcher"></select>
+        <label for="f-stage">Stage</label>
+        <select id="f-stage"><option value="all">All</option></select>
+        <label for="f-dstatus">Status</label>
+        <select id="f-dstatus"><option value="all">All</option></select>
+        <span class="spacer"></span>
+        <span class="mirror-status" id="deals-status">Connecting to the results feed&hellip;</span>
+      </div>
+      <div class="card tbl-wrap">
+        <table id="deal-table">
+          <thead>
+            <tr>
+              <th>Deal codename</th>
+              <th>Industry</th>
+              <th>Status</th>
+              <th>HQ</th>
+              <th>Source</th>
+              <th class="num">TTM Rev</th>
+              <th class="num">TTM EBITDA</th>
+              <th class="num">Mult.</th>
+              <th class="num">EV</th>
+              <th class="num">Deal Test</th>
+              <th>Grade</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="deal-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <p class="footnote" id="footnote"></p>
+
+</div>
+
+<!-- drilldown -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dr-title">
+  <div class="dr-head">
+    <button class="close" id="dr-close" aria-label="Close">&times;</button>
+    <h3 id="dr-title"></h3>
+    <div class="sub" id="dr-sub"></div>
+    <div class="dr-score"><span class="n" id="dr-score"></span><span class="d">/ 100 &nbsp;·&nbsp; <span id="dr-rating"></span></span></div>
+  </div>
+  <div class="dr-body" id="dr-body"></div>
+</aside>
+
+<script>
+/* =========================================================
+   DATA  (all example / placeholder)
+   ========================================================= */
+const AS_OF = new Date("2026-07-29");
+const MAX_MONTHS = 24;
+const WK_PER_MONTH = 4.345;
+
+// Live Searchers sheet (gid 0 of the "Searchers" workbook)
+const SHEET_ID = "18dOqlhUWVmPurCtPmAeUzwomK40ijRLn2vHUbrPWlqc";
+let liveSearchers = null;   // set once the live roster loads; feeds the runway clocks
+let searchersLive = false;
+
+const searchers = [
+  { name:"Ava Nakamura",  start:"2025-09-01" },
+  { name:"Jenna Cole",    start:"2025-01-10" },
+  { name:"Marcus Bell",   start:"2024-11-15" },
+  { name:"Daniel Ortiz",  start:"2026-02-15" },
+  { name:"Priya Shah",    start:"2024-05-01" },
+];
+
+// latest reported period per searcher (drives funnel + pace)
+const kpi = [
+  { searcher:"Ava Nakamura", period:"2026-07-20", type:"Week",  contacted:412, convos:9,  fin:4, ioi:2, loi:1, acc:0 },
+  { searcher:"Ava Nakamura", period:"2026-07-13", type:"Week",  contacted:388, convos:7,  fin:3, ioi:1, loi:0, acc:0 },
+  { searcher:"Jenna Cole",   period:"2026-07-20", type:"Week",  contacted:505, convos:12, fin:6, ioi:3, loi:1, acc:1 },
+  { searcher:"Jenna Cole",   period:"2026-07-13", type:"Week",  contacted:470, convos:10, fin:5, ioi:2, loi:1, acc:0 },
+  { searcher:"Marcus Bell",  period:"2026-07",    type:"Month", contacted:1540,convos:31, fin:12,ioi:5, loi:2, acc:1 },
+  { searcher:"Marcus Bell",  period:"2026-06",    type:"Month", contacted:1420,convos:28, fin:10,ioi:4, loi:1, acc:0 },
+  { searcher:"Daniel Ortiz", period:"2026-07",    type:"Month", contacted:2010,convos:40, fin:15,ioi:6, loi:3, acc:1 },
+  { searcher:"Priya Shah",   period:"2026-07-20", type:"Week",  contacted:288, convos:6,  fin:3, ioi:1, loi:0, acc:0 },
+  { searcher:"Priya Shah",   period:"2026-07-13", type:"Week",  contacted:262, convos:5,  fin:2, ioi:0, loi:0, acc:0 },
+];
+
+// 14 Deal Tests in order (EBITDA Multiple Source = 5). T11 & T12 are info-only (answer, no points).
+const TESTS = [
+  {n:1,  name:"Deal Risk / Return Test"},
+  {n:2,  name:"Enduringly Profitable Test"},
+  {n:3,  name:"Adjusted TTM Test"},
+  {n:4,  name:"Valuation Risk Test"},
+  {n:5,  name:"EBITDA Multiple Source Test"},
+  {n:6,  name:"Future Strategic Opportunities Test"},
+  {n:7,  name:"Debt Service Coverage Test"},
+  {n:8,  name:"Commercial Banker Test"},
+  {n:9,  name:"Model Build Test"},
+  {n:10, name:"Capital Risk Report Test"},
+  {n:11, name:"Quality of Earnings (QoE)", info:true},
+  {n:12, name:"Tax Returns & 5-Year Financials Test", info:true},
+  {n:13, name:"Customer / Payor Mix Concentration Test"},
+  {n:14, name:"Deal Structure & Seller Terms Test"},
+];
+const PTS_MAX = 4;
+const GRADE_POINTS = {A:4, B:3, C:2, D:1, F:0};
+const SCORED_TESTS = [1,2,3,4,5,6,7,8,9,10,13,14];
+// Weights come from the shared weights.json (single source of truth); these are the fallback + live-panel default.
+let OFFICIAL_WEIGHTS = {1:2, 2:2, 4:2, 14:2};
+let WEIGHTS = Object.assign({}, OFFICIAL_WEIGHTS);
+const weightOf = n => WEIGHTS[n] || 1;
+const computeMax = () => SCORED_TESTS.reduce((s,n)=> s + 4*weightOf(n), 0);
+function loadWeights(){
+  return fetch('weights.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{
+    const w={}; Object.keys(j).forEach(k=>{ if(/^[0-9]+$/.test(k)) w[k]=+j[k]; });
+    if(Object.keys(w).length){ OFFICIAL_WEIGHTS=w; WEIGHTS=Object.assign({},w); }
+  }).catch(()=>{});
+}
+// Recompute each deal's weighted total from its letter grades (old /44 and new rows share one scale).
+function weightedTotal(tests){
+  let tot = 0;
+  TESTS.forEach((t,k)=>{
+    if(t.info) return;
+    const g = ((tests[k]&&tests[k][0])||"").toString().trim().toUpperCase();
+    if(GRADE_POINTS[g]!=null) tot += GRADE_POINTS[g] * weightOf(t.n);
+  });
+  return tot;
+}
+function overallGradeLetter(total){
+  const p = total/computeMax();
+  return p>=39/44?"A":p>=33/44?"B":p>=27/44?"C":p>=23/44?"D":"F";
+}
+// Live published results feed (public CSV) behind the existing Deal Tests form
+const DEALS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT975eNM6DzQs2ueNgMgSuSVl0vJ1bS9FMHze8iXY8fA3sP1Q8DRCMEYVs1chGVc9WtcZdY82H7zZ9M/pub?gid=0&single=true&output=csv";
+let deals = [];         // filled live from the feed
+let dealsLive = false;
+
+// Deal characteristics — "For CIM Dash" tab (gid 522189976) in the private Searchers workbook, read authenticated.
+const PIPELINE_GID = "522189976";
+let pipelineByCode = {};
+
+// Example fallback (used only if the live feed can't be reached, e.g. in this preview)
+// tests[] align to TESTS display order: T1,T2,T3,T4,T14,T5,T6,T7,T8,T9,T10,T11,T12,T13
+const SAMPLE_DEALS = [
+  {codename:"Project Cascade (Example)", business:"Regional janitorial platform", searcher:"Sample Searcher", date:"Jun 12, 2026", stage:"LOI submitted", total:61, grade:"A",
+   tests:[["A",8],["A",8],["B",3],["A",8],["A",4],["A",4],["B",3],["A",4],["A",4],["A",4],["Yes",null,"QoE underway"],["Yes",null,"5 yrs provided"],["B",3],["A",8]], overall:"Strong recurring base; light on owner-transition planning."},
+  {codename:"Project Harbor (Example)", business:"Residential HVAC", searcher:"Sample Searcher", date:"May 30, 2026", stage:"IOI submitted", total:35, grade:"D",
+   tests:[["C",4],["B",6],["F",0],["C",4],["B",3],["B",3],["C",2],["B",3],["C",2],["C",2],["No",null,"Pending"],["No",null,"3 yrs only"],["C",2],["C",4]], overall:"Owner-dependent; financials incomplete."},
+];
+const SAMPLE_PIPELINE = {
+  "Project Cascade (Example)":{industry:"Commercial janitorial", city:"Portland", state:"OR", status:"Active",   source:"Proprietary", rev:8.4, ebitda:1.9, mult:4.2, ev:8.0, cim:"cascade-cim.pdf"},
+  "Project Harbor (Example)": {industry:"Residential HVAC",      city:"Tampa",    state:"FL", status:"Inactive", source:"Broker",      rev:6.2, ebitda:1.4, mult:4.8, ev:6.7, cim:"harbor-cim.pdf"},
+};
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const monthsBetween = (from, to) => {
+  const a = new Date(from), b = to;
+  return (b.getFullYear()-a.getFullYear())*12 + (b.getMonth()-a.getMonth()) + (b.getDate()-a.getDate())/30.44;
+};
+const money = m => "$" + m.toFixed(1) + "M";
+const health = monthsIn => monthsIn > MAX_MONTHS ? "bad" : (MAX_MONTHS - monthsIn) <= 6 ? "warn" : "good";
+const wkEquiv = r => r.type==="Month" ? Math.round(r.contacted / WK_PER_MONTH) : r.contacted;
+const paceClass = wk => wk < 300 ? "bad" : "good";
+const scoreColor = s => s>=75 ? "var(--good)" : s>=60 ? "var(--warn)" : "var(--bad)";
+const rating = s => s>=75 ? "Strong" : s>=60 ? "Watch" : "Weak";
+
+/* =========================================================
+   RUNWAY CLOCKS
+   ========================================================= */
+function renderClocks(){
+  const el = $("#clocks"); el.innerHTML = "";
+  const useLive = liveSearchers && liveSearchers.length;
+  const roster = useLive ? liveSearchers : searchers;
+  const asOf = useLive ? new Date() : AS_OF;
+  roster
+    .map(s => ({...s, mIn: monthsBetween(s.start, asOf)}))
+    .sort((a,b)=> b.mIn - a.mIn)
+    .forEach(s => {
+      const h = health(s.mIn);
+      const pct = Math.min(100, (s.mIn/MAX_MONTHS)*100);
+      const rem = MAX_MONTHS - s.mIn;
+      const remTxt = rem <= 0 ? "Past limit" : rem.toFixed(1);
+      const pill = h==="good"?"On track":h==="warn"?"Closing window":"Over 24 mo";
+      const startTxt = new Date(s.start).toLocaleDateString("en-US",{month:"short",year:"numeric"});
+      el.insertAdjacentHTML("beforeend", `
+        <div class="clock">
+          <div class="who">
+            <div class="name">${s.name}</div>
+            <div class="meta">started ${startTxt}</div>
+          </div>
+          <div class="rway">
+            <div class="track">
+              <div class="fill ${h}" style="width:${pct}%"></div>
+              <div class="marker" style="left:calc(${pct}% - 1px)"></div>
+            </div>
+            <div class="limit"></div>
+            <div class="ticks"><span>0</span><span>6</span><span>12</span><span>18</span><span>24 mo</span></div>
+          </div>
+          <div class="runway-stat">
+            <div class="big">${remTxt}${rem>0?'<span style="font-size:12px;color:var(--ink-faint)"> mo</span>':''}</div>
+            <div class="lbl">${rem>0?"est. remaining":""} · ${s.mIn.toFixed(1)} mo in</div>
+            <div style="margin-top:5px"><span class="pill ${h}">${pill}</span></div>
+          </div>
+        </div>`);
+    });
+}
+
+/* =========================================================
+   FUNNEL (combined latest period)
+   ========================================================= */
+function renderFunnel(){
+  const latest = {};
+  kpi.forEach(r => { if(!latest[r.searcher] || r.period > latest[r.searcher].period) latest[r.searcher] = r; });
+  const rows = Object.values(latest);
+  const sum = k => rows.reduce((a,r)=>a+r[k],0);
+  const stages = [
+    ["New businesses contacted", sum("contacted")],
+    ["First owner conversations", sum("convos")],
+    ["New financials received", sum("fin")],
+    ["IOIs submitted", sum("ioi")],
+    ["LOIs submitted", sum("loi")],
+    ["LOIs accepted", sum("acc")],
+  ];
+  const top = stages[0][1];
+  $("#funnel").innerHTML = stages.map((s,i)=>{
+    const w = Math.max(3, (s[1]/top)*100);
+    const pct = i===0 ? "" : (s[1]/top*100).toFixed(1)+"%";
+    return `<div class="funnel-row">
+      <span class="flabel">${s[0]}</span>
+      <div class="funnel-bar" style="width:${w}%">${s[1].toLocaleString()}</div>
+      <span class="fpct">${pct}</span>
+    </div>`;
+  }).join("");
+}
+
+/* =========================================================
+   PACE BAND
+   ========================================================= */
+function renderPace(){
+  const latest = {};
+  kpi.forEach(r => { if(!latest[r.searcher] || r.period > latest[r.searcher].period) latest[r.searcher] = r; });
+  const SCALE = 620; // px-scale max for the track
+  const zoneL = 300/SCALE*100, zoneR = 500/SCALE*100;
+  $("#paceband").innerHTML = Object.values(latest)
+    .sort((a,b)=> wkEquiv(b)-wkEquiv(a))
+    .map(r=>{
+      const wk = wkEquiv(r);
+      const w = Math.min(100, wk/SCALE*100);
+      const cls = paceClass(wk);
+      return `<div class="pb-row">
+        <span class="pb-name">${r.searcher}</span>
+        <div class="pb-track">
+          <div class="pb-zone" style="left:${zoneL}%;width:${zoneR-zoneL}%"></div>
+          <div class="pb-fill ${cls}" style="width:${w}%"></div>
+        </div>
+        <span class="pb-val">${wk.toLocaleString()}<small>/wk${r.type==="Month"?" eq.":""}</small></span>
+      </div>`;
+    }).join("");
+}
+
+/* =========================================================
+   KPI TABLE
+   ========================================================= */
+function renderKpiTable(){
+  const sf = $("#f-searcher").value, pf = $("#f-period").value;
+  const rows = kpi
+    .filter(r => (sf==="all"||r.searcher===sf) && (pf==="all"||r.type===pf))
+    .sort((a,b)=> (b.period>a.period?1:-1));
+  $("#kpi-body").innerHTML = rows.map(r=>{
+    const wk = wkEquiv(r);
+    const below = wk < 300;
+    return `<tr>
+      <td>${r.searcher}</td>
+      <td>${r.period}</td>
+      <td><span class="tag ${r.type==='Month'?'month':'week'}">${r.type==='Month'?'Monthly':'Weekly'}</span></td>
+      <td class="num ${below?'below':''}">${r.contacted.toLocaleString()}</td>
+      <td class="num">${r.type==='Month'?'~'+wk.toLocaleString():'&mdash;'}</td>
+      <td class="num">${r.convos}</td>
+      <td class="num">${r.fin}</td>
+      <td class="num">${r.ioi}</td>
+      <td class="num">${r.loi}</td>
+      <td class="num">${r.acc}</td>
+    </tr>`;
+  }).join("");
+}
+
+/* =========================================================
+   DEAL TABLE + DRILLDOWN
+   ========================================================= */
+function csvParse(t){const rows=[];let i=0,cur='',row=[],q=false;while(i<t.length){const c=t[i];if(q){if(c=='"'){if(t[i+1]=='"'){cur+='"';i+=2;continue;}q=false;i++;continue;}cur+=c;i++;}else{if(c=='"'){q=true;i++;}else if(c==','){row.push(cur);cur='';i++;}else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur='';i++;}else if(c=='\r'){i++;}else{cur+=c;i++;}}}if(cur.length||row.length){row.push(cur);rows.push(row);}return rows;}
+
+function rowsToDeals(rows){
+  const head = rows[0].map(h=>h.trim());
+  const ix = n => head.indexOf(n);
+  const iCode=ix("Deal Codename"), iBiz=ix("Target Business"), iSearcher=ix("Searcher Name"),
+        iDate=ix("Date Completed"), iStage=ix("Deal Stage"), iTotal=ix("Total Score"),
+        iGrade=ix("Overall Grade"), iOverall=ix("Overall Assessment");
+  return rows.slice(1).filter(r=>r.some(c=>(c||"").trim())).map(r=>{
+    const tests = TESTS.map(t=>{
+      const g=ix("T"+t.n+" Grade"), a=ix("T"+t.n+" Answer"), nt=ix("T"+t.n+" Notes");
+      const grade = t.info ? (a>=0?(r[a]||"").trim():"") : (g>=0?(r[g]||"").trim():"");
+      const gp = GRADE_POINTS[(grade||"").toUpperCase()];
+      const pts = (!t.info && gp!=null) ? gp * weightOf(t.n) : null;   // recomputed from grade (weight-aware)
+      const notes = nt>=0 ? (r[nt]||"").trim() : "";
+      return [grade, pts, notes];
+    });
+    const total = weightedTotal(tests);
+    return {
+      codename: iCode>=0?(r[iCode]||"").trim():"", business: iBiz>=0?(r[iBiz]||"").trim():"",
+      searcher: iSearcher>=0?(r[iSearcher]||"").trim():"", date: iDate>=0?(r[iDate]||"").trim():"",
+      stage: iStage>=0?(r[iStage]||"").trim():"", total: total,
+      grade: overallGradeLetter(total), overall: iOverall>=0?(r[iOverall]||"").trim():"", tests
+    };
+  }).filter(d=>d.codename);
+}
+
+function populateDealFilters(){
+  const ss=[...new Set(deals.map(d=>d.searcher).filter(Boolean))].sort();
+  const stg=[...new Set(deals.map(d=>d.stage).filter(Boolean))].sort();
+  const sts=[...new Set(deals.map(d=>d.ch&&d.ch.status).filter(Boolean))].sort();
+  $("#f-dsearcher").innerHTML = `<option value="all">All searchers</option>`+ss.map(s=>`<option>${esc(s)}</option>`).join("");
+  $("#f-stage").innerHTML = `<option value="all">All</option>`+stg.map(s=>`<option>${esc(s)}</option>`).join("");
+  $("#f-dstatus").innerHTML = `<option value="all">All</option>`+sts.map(s=>`<option>${esc(s)}</option>`).join("");
+}
+const pct = total => Math.round(total/computeMax()*100);
+const ptsClass = p => p==null?"":(p>=4?"pass":p>=2?"partial":"fail");
+const gradeClass = g => { g=(g||"").toString().trim().toUpperCase(); return (g==="A"||g==="B")?"pass":g==="C"?"partial":(g==="D"||g==="F")?"fail":""; };
+const mMoney = v => v==null?"—":"$"+Number(v).toFixed(1)+"M";
+
+function renderDeals(){
+  const se=$("#f-dsearcher").value, stg=$("#f-stage").value, sts=$("#f-dstatus").value;
+  const rows = deals.filter(d => (se==="all"||d.searcher===se) && (stg==="all"||d.stage===stg) && (sts==="all"||(d.ch&&d.ch.status===sts)));
+  if(!rows.length){ $("#deal-body").innerHTML = `<tr><td colspan="12" style="color:var(--ink-faint);padding:22px 14px">No deals yet.</td></tr>`; return; }
+  $("#deal-body").innerHTML = rows.map(d=>{
+    const idx = deals.indexOf(d); const p = pct(d.total); const col = scoreColor(p); const c = d.ch;
+    const hq = c && (c.city||c.state) ? esc([c.city,c.state].filter(Boolean).join(", ")) : "—";
+    return `<tr class="click" data-i="${idx}" tabindex="0">
+      <td><strong>${esc(d.codename)}</strong></td>
+      <td>${c&&c.industry?esc(c.industry):"—"}</td>
+      <td>${c&&c.status?`<span class="tag ${/inactive/i.test(c.status)?'inactive':'active'}">${esc(c.status)}</span>`:"—"}</td>
+      <td>${hq}</td>
+      <td>${c&&c.source?`<span class="tag ${/broker/i.test(c.source)?'broker':'prop'}">${esc(c.source)}</span>`:"—"}</td>
+      <td class="num">${mMoney(c&&c.rev)}</td>
+      <td class="num">${mMoney(c&&c.ebitda)}</td>
+      <td class="num">${c&&c.mult!=null?c.mult.toFixed(1)+"x":"—"}</td>
+      <td class="num">${mMoney(c&&c.ev)}</td>
+      <td class="num"><span class="scorechip">
+        <span class="sc-num" style="color:${col}">${d.total}<small style="color:var(--ink-faint);font-weight:400">/${computeMax()}</small></span>
+        <span class="scorebar"><i style="width:${p}%;background:${col}"></i></span></span></td>
+      <td>${d.grade?`<span class="tag ${p>=75?'active':p>=55?'prop':'inactive'}">${esc(d.grade)}</span>`:"—"}</td>
+      <td><span class="caret">&rsaquo;</span></td>
+    </tr>`;
+  }).join("");
+  document.querySelectorAll("#deal-body tr.click").forEach(tr=>{
+    tr.addEventListener("click", ()=> openDrawer(+tr.dataset.i));
+    tr.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();openDrawer(+tr.dataset.i);} });
+  });
+}
+
+function openDrawer(i){
+  const d = deals[i]; const p = pct(d.total); const col = scoreColor(p); const c = d.ch;
+  $("#dr-title").textContent = d.codename;
+  $("#dr-sub").textContent = [d.business, d.searcher, d.date].filter(Boolean).join(" · ");
+  $("#dr-score").textContent = d.total; $("#dr-score").style.color = col;
+  const rt = $("#dr-rating"); rt.textContent = d.grade||rating(p); rt.style.color = col; rt.style.fontWeight="600";
+  const chRows = c ? `
+      <div class="k">Industry</div><div class="v">${esc(c.industry||"—")}</div>
+      <div class="k">HQ</div><div class="v">${esc([c.city,c.state].filter(Boolean).join(", ")||"—")}</div>
+      <div class="k">Status</div><div class="v">${esc(c.status||"—")}</div>
+      <div class="k">Source</div><div class="v">${esc(c.source||"—")}</div>
+      <div class="k">TTM Revenue</div><div class="v">${mMoney(c.rev)}</div>
+      <div class="k">TTM Adj. EBITDA</div><div class="v">${mMoney(c.ebitda)}</div>
+      <div class="k">EBITDA Multiple</div><div class="v">${c.mult!=null?c.mult.toFixed(1)+"x":"—"}</div>
+      <div class="k">Enterprise Value</div><div class="v">${mMoney(c.ev)}</div>` : "";
+  $("#dr-body").innerHTML = `
+    <div class="kv">
+      <div class="k">Target business</div><div class="v">${esc(d.business||"—")}</div>
+      <div class="k">Searcher</div><div class="v">${esc(d.searcher||"—")}</div>
+      <div class="k">Stage</div><div class="v">${esc(d.stage||"—")}</div>
+      <div class="k">Date completed</div><div class="v">${esc(d.date||"—")}</div>
+      ${chRows}
+      <div class="k">Total score</div><div class="v">${d.total} / ${computeMax()}</div>
+      <div class="k">Overall grade</div><div class="v">${esc(d.grade||"—")}</div>
+    </div>
+    ${c ? `<p style="font-size:11px;color:var(--warn);margin:10px 0 0">Characteristics from the CIM${c.cim?` (${esc(c.cim)})`:""} — seller-stated, verify.</p>`
+        : `<p style="font-size:11px;color:var(--ink-faint);margin:10px 0 0">No CIM characteristics yet for this deal.</p>`}
+    <h4>Deal Tests</h4>
+    ${TESTS.map((t,k)=>{
+      const [grade,notes2Ignore,notes]=d.tests[k]||["",null,""];
+      const cls = t.info ? "" : gradeClass(grade);
+      const gp = GRADE_POINTS[(grade||"").toString().trim().toUpperCase()];
+      const w = weightOf(t.n); const tmax = PTS_MAX * w;
+      const pts = (t.info || gp==null) ? null : gp * w;   // live from grade + current weights
+      const right = t.info
+        ? `<span class="tres" style="color:var(--ink-faint)">${esc(grade||"—")}</span>`
+        : `<span class="tres ${cls}">${esc(grade||"—")}${pts!=null?` · ${pts}/${tmax}`:""}${w>1?` <span style="color:var(--ink-faint);font-weight:400">·×${w}</span>`:""}</span>`;
+      return `<div class="testrow">
+        <span class="dot ${t.info?'':cls}"></span>
+        <span class="tname">T${t.n} · ${esc(t.name)}${notes?`<br><span style="font-size:11px;color:var(--ink-faint)">${esc(notes)}</span>`:""}</span>
+        ${right}
+      </div>`;
+    }).join("")}
+    ${d.overall?`<h4>Overall assessment</h4><p style="font-size:12.5px;color:var(--ink-soft);white-space:pre-wrap">${esc(d.overall)}</p>`:""}`;
+  $("#scrim").classList.add("open");
+  $("#drawer").classList.add("open");
+  $("#dr-close").focus();
+}
+
+function rowsToPipeline(rows){
+  const head=rows[0].map(h=>h.trim()); const ix=n=>head.indexOf(n);
+  const num=v=>{const x=parseFloat(String(v).replace(/[^0-9.\-]/g,""));return isNaN(x)?null:x;};
+  const out={};
+  rows.slice(1).filter(r=>r.some(c=>(c||"").trim())).forEach(r=>{
+    const code=ix("Deal Codename")>=0?(r[ix("Deal Codename")]||"").trim():""; if(!code) return;
+    out[code]={
+      industry: ix("Industry")>=0?(r[ix("Industry")]||"").trim():"",
+      city: ix("HQ City")>=0?(r[ix("HQ City")]||"").trim():"",
+      state: ix("HQ State")>=0?(r[ix("HQ State")]||"").trim():"",
+      status: ix("Status")>=0?(r[ix("Status")]||"").trim():"",
+      source: ix("Source")>=0?(r[ix("Source")]||"").trim():"",
+      rev: num(r[ix("TTM Revenue")]), ebitda: num(r[ix("TTM Adj. EBITDA")]),
+      mult: num(r[ix("EBITDA Multiple")]), ev: num(r[ix("Enterprise Value")]),
+      cim: ix("CIM File")>=0?(r[ix("CIM File")]||"").trim():""
+    };
+  });
+  return out;
+}
+function loadPipeline(){
+  return new Promise(resolve=>{
+    if(!PIPELINE_GID) return resolve();
+    const cb="__gtePipe"+Date.now(); let done=false;
+    const finish=()=>{ if(!done){ done=true; try{delete window[cb];}catch(_){} resolve(); } };
+    window[cb]=function(resp){
+      try{
+        const cells=resp.table.rows.map(r=>r.c.map(c=>{ if(!c)return""; const d=gvizDate(c.v); if(d)return fmtDate(d); return c.v==null?"":c.v; }));
+        pipelineByCode = rowsToPipeline(cells);
+      }catch(e){}
+      finish();
+    };
+    const s=document.createElement("script");
+    s.src=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${PIPELINE_GID}&headers=0&tqx=out:json;responseHandler:${cb}`;
+    s.onerror=finish; document.head.appendChild(s);
+    setTimeout(finish, 7000);
+  });
+}
+function applyPipeline(){ deals.forEach(d=>{ d.ch = pipelineByCode[d.codename] || null; }); }
+
+function buildWeightControls(){
+  const c=$("#weight-controls"); if(!c) return;
+  c.innerHTML = SCORED_TESTS.map(n=>{
+    const name=((TESTS.find(t=>t.n===n)||{}).name)||("T"+n);
+    return `<label style="display:flex;flex-direction:column;gap:3px;font-size:9px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-faint);width:96px">
+      <span style="white-space:normal;line-height:1.2;height:24px;overflow:hidden">T${n} ${esc(name)}</span>
+      <input class="wt-input" data-test="${n}" type="number" min="0" step="0.5" value="${weightOf(n)}" style="width:100%;padding:5px 7px;border:1px solid var(--hairline);border-radius:6px;font-size:13px;font-weight:600;color:var(--ink)">
+    </label>`;
+  }).join("") + `<button class="btn" id="wt-reset" style="align-self:flex-end">Reset</button><div style="align-self:flex-end;font-size:11px;color:var(--ink-faint)">Max <b id="wt-max" style="color:var(--ink)">${computeMax()}</b> pts</div>`;
+  c.querySelectorAll(".wt-input").forEach(inp=> inp.addEventListener("change", applyWeights));
+  const rb=$("#wt-reset"); if(rb) rb.addEventListener("click", resetWeights);
+}
+function applyWeights(){
+  document.querySelectorAll("#weight-controls .wt-input").forEach(inp=>{ const n=+inp.getAttribute("data-test"); const v=parseFloat(inp.value); WEIGHTS[n]=(isNaN(v)||v<0)?1:v; });
+  const wm=$("#wt-max"); if(wm) wm.textContent=computeMax();
+  deals.forEach(d=>{ d.total=weightedTotal(d.tests); d.grade=overallGradeLetter(d.total); });
+  renderDeals();
+}
+function resetWeights(){ WEIGHTS=Object.assign({},OFFICIAL_WEIGHTS); buildWeightControls(); applyWeights(); }
+
+function loadDeals(){
+  Promise.all([ fetch(DEALS_CSV).then(r=>r.text()), loadPipeline() ]).then(([txt])=>{
+    deals = rowsToDeals(csvParse(txt)); dealsLive = true; applyPipeline();
+    populateDealFilters(); renderDeals();
+    const withCh = deals.filter(d=>d.ch).length;
+    $("#deals-status").textContent = deals.length+" deals · live"+(PIPELINE_GID?` · ${withCh} with characteristics`:` · characteristics pending`);
+    $("#deals-status").className = "mirror-status live";
+  }).catch(()=>{
+    deals = SAMPLE_DEALS; pipelineByCode = SAMPLE_PIPELINE; applyPipeline();
+    populateDealFilters(); renderDeals();
+    $("#deals-status").textContent = "Preview sample — feeds load live when hosted.";
+    $("#deals-status").className = "mirror-status warn";
+  });
+}
+function closeDrawer(){ $("#scrim").classList.remove("open"); $("#drawer").classList.remove("open"); }
+
+/* =========================================================
+   TABS + FILTERS + INIT
+   ========================================================= */
+/* ---------- Searchers live mirror (gviz JSONP) ---------- */
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const gvizDate = v => { const m = typeof v==="string" && v.match(/^Date\((\d+),(\d+),(\d+)/); return m ? new Date(+m[1],+m[2],+m[3]) : null; };
+const fmtDate = d => (d instanceof Date && !isNaN(d)) ? (d.getMonth()+1)+"/"+d.getDate()+"/"+d.getFullYear() : "";
+const parseUSDate = s => { const m = String(s).match(/(\d+)\/(\d+)\/(\d+)/); return m ? new Date(+m[3], +m[1]-1, +m[2]) : null; };
+function statusClass(txt){
+  const t = (txt||"").toLowerCase();
+  if(t.includes("fail") || t.includes("closed without")) return "st-lost";
+  if(t.includes("acquired") || t.includes("operating") || t.includes("closed with")) return "st-won";
+  if(t.includes("paus")) return "st-paused";
+  return t.trim() ? "st-open" : "";
+}
+function renderMirror(headers, rows){
+  const ncol = Math.max(headers.length, ...rows.map(r=>r.length));
+  let hh = "<tr>";
+  for(let i=0;i<ncol;i++) hh += "<th>"+(esc(headers[i]||"")||("&nbsp;"))+"</th>";
+  $("#mirror-head").innerHTML = hh + "</tr>";
+  $("#mirror-body").innerHTML = rows.map(r=>{
+    let tr = "<tr>";
+    for(let i=0;i<ncol;i++){ const cls = i===1 ? statusClass(r[1]) : ""; tr += `<td class="${cls}">${esc(r[i]??"")}</td>`; }
+    return tr + "</tr>";
+  }).join("");
+}
+function handleGviz(resp){
+  try{
+    const cells = resp.table.rows.map(r => r.c.map(c => {
+      if(!c) return "";
+      const d = gvizDate(c.v); if(d) return fmtDate(d);
+      return c.v==null ? "" : c.v;
+    }));
+    let hi = cells.findIndex(r => (r[6]||"").toString().trim() === "Full Name");
+    if(hi < 0) hi = 0;
+    const headers = cells[hi];
+    const data = cells.slice(hi+1).filter(r => (r[6]||"").toString().trim() !== "");
+    renderMirror(headers, data);
+    searchersLive = true;
+    $("#mirror-status").textContent = "Live from the Searchers sheet.";
+    $("#mirror-status").className = "mirror-status live";
+    $("#mirror-count").textContent = data.length + " searchers · " + headers.length + " columns";
+    // feed the runway clocks with searchers still in-search (adjustable rule)
+    const active = data
+      .map(r => ({ name: r[6], start: parseUSDate(r[0]), statusText: r[1] }))
+      .filter(x => x.name && x.start && !/acquired|fail|closed|operating/i.test(x.statusText||""));
+    if(active.length){ liveSearchers = active; renderClocks(); }
+  }catch(e){ showMirrorFallback(); }
+}
+function loadSearchers(){
+  $("#mirror-status").textContent = "Connecting to the sheet…";
+  $("#mirror-status").className = "mirror-status";
+  searchersLive = false;
+  const cb = "__gteCb" + Date.now();
+  window[cb] = function(resp){ try{ delete window[cb]; }catch(_){}; handleGviz(resp); };
+  const s = document.createElement("script");
+  s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=0&headers=0&tqx=out:json;responseHandler:${cb}`;
+  s.onerror = () => showMirrorFallback();
+  document.head.appendChild(s);
+  setTimeout(() => { if(!searchersLive) showMirrorFallback(); }, 7000);
+}
+const SAMPLE_HEADERS = ["Date Added Here","Status","Search Fund Name","Solo or Partner Search?","First Name","Last Name","Full Name","Searcher #","Search Year","Lead Contact from GTE","Source","Interview Score [0–5]"];
+const SAMPLE_ROWS = [
+  ["1/15/2024","(5c) Acquired & Actively Operating","Cedar Peak Search","Solo","Sample","Searcher","Sample Searcher A","1","2024","Ryan","Conference","4"],
+  ["6/2/2023","(0) Actively Searching","Boxwood Capital","Partner","Sample","Searcher","Sample Searcher B","2","2023","Jamie","Referral","3"],
+  ["11/8/2024","Temporarily Paused","Riverstone Search","Solo","Sample","Searcher","Sample Searcher C","1","2024","Jonas","Conference","4"],
+  ["9/20/2022","(5a) Failed to Acquire Business","Northgate Partners","Solo","Sample","Searcher","Sample Searcher D","1","2022","Jonas","Referral","5"],
+];
+function showMirrorFallback(){
+  if(searchersLive) return;
+  renderMirror(SAMPLE_HEADERS, SAMPLE_ROWS);
+  $("#mirror-status").textContent = "Preview sample — the live sheet isn't reachable from here. Open this dashboard while signed into Google (with access to the sheet) to load all 103 columns and every searcher.";
+  $("#mirror-status").className = "mirror-status warn";
+  $("#mirror-count").textContent = "sample · 4 columns shown of 103";
+}
+$("#mirror-reload").addEventListener("click", loadSearchers);
+
+function stamp(){ const d=new Date(); $("#asof").textContent = "updated "+d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
+function refreshAll(){ const b=$("#refresh-all"); b.disabled=true; b.textContent="Refreshing…"; loadSearchers(); loadDeals(); stamp(); setTimeout(()=>{ b.disabled=false; b.innerHTML="&#8635;&nbsp;Refresh"; }, 1200); }
+$("#refresh-all").addEventListener("click", refreshAll);
+
+function setTab(which){
+  ["searchers","search","deals"].forEach(k=>{
+    $("#tab-"+k).setAttribute("aria-selected", k===which);
+    $("#view-"+k).classList.toggle("hidden", k!==which);
+  });
+}
+$("#tab-searchers").addEventListener("click", ()=>setTab("searchers"));
+$("#tab-search").addEventListener("click", ()=>setTab("search"));
+$("#tab-deals").addEventListener("click", ()=>setTab("deals"));
+$("#scrim").addEventListener("click", closeDrawer);
+$("#dr-close").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeDrawer(); });
+
+// populate KPI searcher filter (Search Progress is still example)
+const names = ["all", ...searchers.map(s=>s.name)];
+$("#f-searcher").innerHTML = names.map(n=>`<option value="${n}">${n==="all"?"All searchers":n}</option>`).join("");
+["#f-searcher","#f-period"].forEach(sel=> $(sel).addEventListener("change", renderKpiTable));
+["#f-dsearcher","#f-stage","#f-dstatus"].forEach(sel=> $(sel).addEventListener("change", renderDeals));
+
+$("#footnote").innerHTML =
+  "Deal Pipeline joins two sources by deal codename: the live Deal Tests results (14 tests, weighted, scored /64) and the &ldquo;For CIM Dash&rdquo; sheet of CIM-extracted characteristics (industry, HQ, financials). " +
+  "Characteristics show &ldquo;&mdash;&rdquo; until that sheet exists and is connected; status &amp; source are manual (not in a CIM). Search Progress is an intentional template — its outreach funnel isn't connected pending the searcher-side tracking pipeline.";
+
+renderClocks(); renderFunnel(); renderPace(); renderKpiTable();
+loadSearchers();
+loadWeights().then(function(){ buildWeightControls(); loadDeals(); });
+stamp();
+</script>
+</body>
+</html>

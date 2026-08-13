@@ -1,0 +1,7 @@
+{
+  "_note": "GTE Deal Test weights — the single source of truth. Key = test number (1-14); value = weight multiplier. Any test not listed counts as 1. Edit this file to re-score the form and BOTH dashboards on their next load. Keep it in the repo root next to deal-tests.html and dashboard.html.",
+  "1": 2,
+  "2": 2,
+  "4": 2,
+  "14": 2
+}

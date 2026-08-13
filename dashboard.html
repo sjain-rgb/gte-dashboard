@@ -342,7 +342,15 @@ var TEST_NAMES = [
 var INFO_ONLY = [11, 12];
 var GRADE_POINTS = {A:4,B:3,C:2,D:1,F:0};
 var SCORED_TESTS = [1,2,3,4,5,6,7,8,9,10,13,14];
-var WEIGHTS = {1:2,2:2,4:2,14:2}; // priority tests x2 (default; adjustable live)
+var OFFICIAL_WEIGHTS = {1:2,2:2,4:2,14:2}; // fallback; overridden by weights.json (shared source of truth)
+var WEIGHTS = Object.assign({}, OFFICIAL_WEIGHTS);
+var _weightsLoaded = false;
+function loadWeights(){
+  return fetch('weights.json',{cache:'no-store'}).then(function(r){return r.json();}).then(function(j){
+    var w={}; Object.keys(j).forEach(function(k){ if(/^[0-9]+$/.test(k)) w[k]=+j[k]; });
+    if(Object.keys(w).length){ OFFICIAL_WEIGHTS=w; WEIGHTS=Object.assign({},w); }
+  }).catch(function(){});
+}
 function weightOf(n){ return WEIGHTS[n]||1; }
 function computeMax(){ var m=0; SCORED_TESTS.forEach(function(n){ m += 4*weightOf(n); }); return m; }
 function weightedTotal(tests){ var tot=0; SCORED_TESTS.forEach(function(n){ var g=((tests[n]&&tests[n].grade)||'').toUpperCase(); if(GRADE_POINTS[g]!=null) tot += GRADE_POINTS[g]*weightOf(n); }); return tot; }
@@ -366,7 +374,7 @@ function applyWeights(){
   allDeals.forEach(function(d){ d.score=weightedTotal(d.tests); d.grade=overallGrade(d.score); });
   renderDashboard();
 }
-function resetWeights(){ WEIGHTS={1:2,2:2,4:2,14:2}; buildWeightControls(); applyWeights(); }
+function resetWeights(){ WEIGHTS=Object.assign({},OFFICIAL_WEIGHTS); buildWeightControls(); applyWeights(); }
 var GRADE_ORDER = {A:5,B:4,C:3,D:2,F:1,'':0};
 var BAR_COLORS = {A:'#82C99A',B:'#76C8D4',C:'#F0C060',D:'#F0A060',F:'#F09090'};
 var GRADE_LABELS = {A:'Strong deal',B:'Good deal',C:'Borderline',D:'Significant issues',F:'Fundamental problems'};
@@ -377,6 +385,7 @@ var sortDir = -1;
 var lastRefresh = null;
 
 function loadData() {
+  if(!_weightsLoaded){ return loadWeights().then(function(){ _weightsLoaded=true; loadData(); }); }
   document.getElementById('loading-state').style.display = 'block';
   document.getElementById('dashboard').style.display = 'none';
   document.getElementById('error-state').style.display = 'none';
