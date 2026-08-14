@@ -239,9 +239,30 @@
   .tmpl-notice{display:flex;gap:13px;align-items:flex-start;padding:14px 16px;border:1px dashed #C7CFD8;border-radius:var(--r);background:repeating-linear-gradient(135deg,#F7F9FB,#F7F9FB 10px,#F2F5F8 10px,#F2F5F8 20px);color:var(--ink-soft);font-size:12.5px;line-height:1.55}
   .tmpl-notice b{color:var(--ink);font-weight:600}
   .tmpl-badge{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6B7787;background:#E7ECF1;border-radius:5px;padding:4px 8px;margin-top:1px}
+  /* ---------- password gate ---------- */
+  .gate{position:fixed;inset:0;z-index:9000;background:var(--ink);display:flex;align-items:center;justify-content:center;padding:24px}
+  .gate-box{background:var(--surface);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:30px 28px;width:min(360px,92vw);text-align:center}
+  .gate-box .glyph{width:34px;height:34px;border-radius:8px;background:var(--brand);margin:0 auto 14px}
+  .gate-box h1{font-family:var(--display);font-weight:600;font-size:18px;margin:0 0 4px}
+  .gate-box p{color:var(--ink-soft);font-size:12.5px;margin:0 0 16px}
+  .gate-box input{width:100%;font:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--hairline);border-radius:9px;margin-bottom:10px;text-align:center}
+  .gate-box button{width:100%;font:inherit;font-weight:600;font-size:13px;color:#fff;background:var(--brand);border:0;border-radius:9px;padding:11px;cursor:pointer}
+  .gate-err{color:var(--bad);font-size:12px;margin-top:10px;display:none}
+  .pdf-btn{font-family:var(--body);font-size:10.5px;font-weight:600;color:var(--ink-soft);background:var(--surface);border:1px solid var(--hairline);border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap}
+  .pdf-btn:hover{background:var(--surface-2);color:var(--ink)}
 </style>
 </head>
 <body>
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <div class="glyph"></div>
+    <h1>GTE Search &amp; Deal Dashboard</h1>
+    <p>Internal use only — enter the access code to continue.</p>
+    <input type="password" id="gate-pw" placeholder="Access code" onkeydown="if(event.key==='Enter')gateCheck()">
+    <button onclick="gateCheck()">Unlock</button>
+    <div class="gate-err" id="gate-err">Incorrect code — try again.</div>
+  </div>
+</div>
 
 <header class="top">
   <div class="top-inner">
@@ -405,6 +426,7 @@
               <th class="num">EV</th>
               <th class="num">Deal Test</th>
               <th>Grade</th>
+              <th></th>
               <th></th>
             </tr>
           </thead>
@@ -712,7 +734,7 @@ const mMoney = v => v==null?"—":"$"+Number(v).toFixed(1)+"M";
 function renderDeals(){
   const se=$("#f-dsearcher").value, stg=$("#f-stage").value, sts=$("#f-dstatus").value;
   const rows = deals.filter(d => (se==="all"||d.searcher===se) && (stg==="all"||d.stage===stg) && (sts==="all"||(d.ch&&d.ch.status===sts)));
-  if(!rows.length){ $("#deal-body").innerHTML = `<tr><td colspan="12" style="color:var(--ink-faint);padding:22px 14px">No deals yet.</td></tr>`; return; }
+  if(!rows.length){ $("#deal-body").innerHTML = `<tr><td colspan="13" style="color:var(--ink-faint);padding:22px 14px">No deals yet.</td></tr>`; return; }
   $("#deal-body").innerHTML = rows.map(d=>{
     const idx = deals.indexOf(d); const p = pct(d.total); const col = scoreColor(p); const c = d.ch;
     const hq = c && (c.city||c.state) ? esc([c.city,c.state].filter(Boolean).join(", ")) : "—";
@@ -730,6 +752,7 @@ function renderDeals(){
         <span class="sc-num" style="color:${col}">${d.total}<small style="color:var(--ink-faint);font-weight:400">/${computeMax()}</small></span>
         <span class="scorebar"><i style="width:${p}%;background:${col}"></i></span></span></td>
       <td>${d.grade?`<span class="tag ${p>=75?'active':p>=55?'prop':'inactive'}">${esc(d.grade)}</span>`:"—"}</td>
+      <td><button class="pdf-btn" data-i="${idx}" title="Print / Save as PDF">↓ PDF</button></td>
       <td><span class="caret">&rsaquo;</span></td>
     </tr>`;
   }).join("");
@@ -737,6 +760,47 @@ function renderDeals(){
     tr.addEventListener("click", ()=> openDrawer(+tr.dataset.i));
     tr.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();openDrawer(+tr.dataset.i);} });
   });
+  document.querySelectorAll("#deal-body .pdf-btn").forEach(b=>{
+    b.addEventListener("click", e=>{ e.stopPropagation(); printDeal(+b.dataset.i); });
+  });
+}
+
+function printDeal(i){
+  const d=deals[i]; if(!d) return; const c=d.ch; const mx=computeMax();
+  const e=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const money=v=>(v==null||v==='')?'\u2014':'$'+Number(v).toFixed(1)+'M';
+  const trs=TESTS.map((t,k)=>{const parts=d.tests[k]||['',null,''];const g=parts[0],notes=parts[2];const gp=GRADE_POINTS[(g||'').toString().toUpperCase()];const w=weightOf(t.n);const pts=t.info?null:(gp!=null?gp*w:null);const pd=t.info?'info-only':(pts!=null?(pts+'/'+(PTS_MAX*w)+(w>1?' (\u00d7'+w+')':'')):'\u2014');return '<tr><td>T'+t.n+'</td><td>'+e(t.name)+'</td><td>'+e(g||'\u2014')+'</td><td>'+pd+'</td><td>'+e(notes||'')+'</td></tr>';}).join('');
+  const html='<!doctype html><html><head><meta charset="utf-8"><title>'+e(d.codename)+' \u2014 Deal Summary</title><style>'
+    +'body{font-family:Georgia,"Times New Roman",serif;color:#141c29;max-width:760px;margin:26px auto;padding:0 22px;line-height:1.5}'
+    +'h1{font-size:22px;margin:0 0 2px}.sub{color:#5a6576;font-size:13px;margin-bottom:14px}'
+    +'.score{font-size:15px;font-weight:700;margin:10px 0 4px}'
+    +'h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#5a6576;margin:22px 0 6px;border-bottom:2px solid #141c29;padding-bottom:3px}'
+    +'.kv{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;font-size:13px}.kv div{padding:4px 0;border-bottom:1px solid #eef1f4}'
+    +'.flag{color:#b47614;font-size:11px;margin-top:6px}'
+    +'table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #e1e7ec;vertical-align:top}'
+    +'th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#5a6576}.foot{margin-top:22px;font-size:10px;color:#8c97a6}'
+    +'@media print{body{margin:0}}</style></head><body>'
+    +'<h1>'+e(d.codename)+'</h1>'
+    +'<div class="sub">'+[e(d.business),e(d.searcher),e(d.date),e(d.stage)].filter(Boolean).join(' &middot; ')+'</div>'
+    +'<div class="score">Deal Test score: '+d.total+' / '+mx+' &middot; Grade '+e(d.grade||'\u2014')+'</div>'
+    +'<h2>Deal characteristics'+(c?'':' (none captured yet)')+'</h2><div class="kv">'
+    +'<div><b>Industry:</b> '+(c?e(c.industry||'\u2014'):'\u2014')+'</div>'
+    +'<div><b>HQ:</b> '+(c?e([c.city,c.state].filter(Boolean).join(', ')||'\u2014'):'\u2014')+'</div>'
+    +'<div><b>Status:</b> '+(c?e(c.status||'\u2014'):'\u2014')+'</div>'
+    +'<div><b>Source:</b> '+(c?e(c.source||'\u2014'):'\u2014')+'</div>'
+    +'<div><b>TTM Revenue:</b> '+(c?money(c.rev):'\u2014')+'</div>'
+    +'<div><b>TTM Adj. EBITDA:</b> '+(c?money(c.ebitda):'\u2014')+'</div>'
+    +'<div><b>EBITDA Multiple:</b> '+(c&&c.mult!=null?(c.mult.toFixed(1)+'x'):'\u2014')+'</div>'
+    +'<div><b>Enterprise Value:</b> '+(c?money(c.ev):'\u2014')+'</div></div>'
+    +(c?'<div class="flag">Characteristics are CIM-sourced \u2014 seller-stated, verify.</div>':'')
+    +'<h2>Deal Tests (14 \u00b7 scored /'+mx+')</h2>'
+    +'<table><thead><tr><th>#</th><th>Test</th><th>Grade</th><th>Points</th><th>Notes</th></tr></thead><tbody>'+trs+'</tbody></table>'
+    +(d.overall?'<h2>Overall assessment</h2><div style="font-size:13px;white-space:pre-wrap">'+e(d.overall)+'</div>':'')
+    +'<div class="foot">Generated '+new Date().toLocaleString()+' \u00b7 GTE Deal Evaluation Dashboard</div></body></html>';
+  const w=window.open('','_blank');
+  if(!w){ alert('Please allow pop-ups for this site to print / save the PDF.'); return; }
+  w.document.open(); w.document.write(html); w.document.close(); w.focus();
+  setTimeout(function(){ try{ w.print(); }catch(_){ } }, 400);
 }
 
 function openDrawer(i){
@@ -966,6 +1030,12 @@ $("#f-searcher").innerHTML = names.map(n=>`<option value="${n}">${n==="all"?"All
 $("#footnote").innerHTML =
   "Deal Pipeline joins two sources by deal codename: the live Deal Tests results (14 tests, weighted, scored /64) and the &ldquo;For CIM Dash&rdquo; sheet of CIM-extracted characteristics (industry, HQ, financials). " +
   "Characteristics show &ldquo;&mdash;&rdquo; until that sheet exists and is connected; status &amp; source are manual (not in a CIM). Search Progress is an intentional template — its outreach funnel isn't connected pending the searcher-side tracking pipeline.";
+
+const GATE_HASH='b035d79dde15d7bcf623c184d192db1c3246e4ff986a8e1353b5874f0a6504b8'; // Schwartz2017!
+const GATE_KEY='gte_comprehensive_unlocked';
+async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+async function gateCheck(){const v=document.getElementById('gate-pw').value;const h=await sha256(v);if(h===GATE_HASH){sessionStorage.setItem(GATE_KEY,'1');document.getElementById('gate').style.display='none';}else{document.getElementById('gate-err').style.display='block';document.getElementById('gate-pw').value='';document.getElementById('gate-pw').focus();}}
+if(sessionStorage.getItem(GATE_KEY)==='1'){const gt=document.getElementById('gate'); if(gt) gt.style.display='none';}else{const gp=document.getElementById('gate-pw'); if(gp) gp.focus();}
 
 renderClocks(); renderFunnel(); renderPace(); renderKpiTable();
 loadSearchers();
