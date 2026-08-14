@@ -878,13 +878,14 @@ function loadPipeline(){
     const finish=()=>{ if(!done){ done=true; try{delete window[cb];}catch(_){} resolve(); } };
     window[cb]=function(resp){
       try{
-        const cells=resp.table.rows.map(r=>r.c.map(c=>{ if(!c)return""; const d=gvizDate(c.v); if(d)return fmtDate(d); return c.v==null?"":c.v; }));
-        pipelineByCode = rowsToPipeline(cells);
+        const labels = resp.table.cols.map(c => (c.label||"").trim());
+        const data = resp.table.rows.map(r=>r.c.map(c=>{ if(!c)return""; const d=gvizDate(c.v); if(d)return fmtDate(d); return c.v==null?"":c.v; }));
+        pipelineByCode = rowsToPipeline([labels].concat(data));  // labels row + data rows
       }catch(e){}
       finish();
     };
     const s=document.createElement("script");
-    s.src=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${PIPELINE_GID}&headers=0&tqx=out:json;responseHandler:${cb}`;
+    s.src=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${PIPELINE_GID}&headers=1&tqx=out:json;responseHandler:${cb}`;
     s.onerror=finish; document.head.appendChild(s);
     setTimeout(finish, 7000);
   });
